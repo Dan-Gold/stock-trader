@@ -1,6 +1,7 @@
-import requests
-import pandas as pd
 import os
+
+import pandas as pd
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -9,7 +10,7 @@ API_KEY = os.getenv("ALPHAVANTAGE_API_KEY")
 SYMBOL = "PLTR"
 INTERVAL = "1min"
 
-url = f"https://www.alphavantage.co/query"
+url = "https://www.alphavantage.co/query"
 params = {
     "function": "TIME_SERIES_INTRADAY",
     "symbol": SYMBOL,

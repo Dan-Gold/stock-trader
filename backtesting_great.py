@@ -1,8 +1,8 @@
-from typing import Tuple, Optional
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
 from datetime import time
+from typing import Optional, Tuple
+
+import numpy as np
+import pandas as pd
 
 # Backtesting Configuration
 RSI_PERIOD: int = 9  # Originally 9, should be 9-11

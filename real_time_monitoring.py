@@ -1,8 +1,9 @@
-import pandas as pd
-import numpy as np
-import requests
 from datetime import datetime
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import requests
 
 # Configuration
 API_KEY = "YOUR_API_KEY"  # Replace with your Alpha Vantage API key
@@ -21,7 +22,7 @@ def fetch_data(symbol, interval, api_key):
     """
     Fetch real-time intraday data from Alpha Vantage.
     """
-    url = f"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY"
+    url = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY"
     params = {
         "symbol": symbol,
         "interval": interval,

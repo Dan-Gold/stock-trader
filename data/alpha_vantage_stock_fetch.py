@@ -1,3 +1,5 @@
+"""Fetch stock data from Alpha Vantage API and save to CSV."""
+
 import os
 
 import pandas as pd

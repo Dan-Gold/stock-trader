@@ -1,3 +1,5 @@
+"""Real-Time Monitoring with RSI strategy."""
+
 from datetime import datetime
 
 import matplotlib.pyplot as plt
@@ -19,9 +21,7 @@ TRADE_LOG = []
 
 # Fetch Real-Time Data
 def fetch_data(symbol, interval, api_key):
-    """
-    Fetch real-time intraday data from Alpha Vantage.
-    """
+    """Fetch real-time intraday data from Alpha Vantage."""
     url = "https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY"
     params = {
         "symbol": symbol,
@@ -39,9 +39,7 @@ def fetch_data(symbol, interval, api_key):
 
 # Compute RSI
 def compute_rsi(df, period):
-    """
-    Calculate RSI for the given dataframe and period.
-    """
+    """Calculate RSI for the given dataframe and period."""
     delta = df["close"].diff()
     gain = np.where(delta > 0, delta, 0)
     loss = np.where(delta < 0, -delta, 0)
@@ -57,9 +55,7 @@ def compute_rsi(df, period):
 
 # Trade Logic with Averaging Down
 def trade_logic(df, trade_log, position):
-    """
-    Executes the trading logic: entry, averaging down, and exit.
-    """
+    """Executes the trading logic: entry, averaging down, and exit."""
     current_price = df["close"].iloc[-1]
     current_rsi = df["RSI"].iloc[-1]
     print(f"Current Price: {current_price}, RSI: {current_rsi:.2f}")
@@ -108,6 +104,7 @@ def trade_logic(df, trade_log, position):
 
 # Main Execution
 def main():
+    """Main function to execute the real-time monitoring."""
     try:
         # Fetch Real-Time Data
         raw_data = fetch_data(SYMBOL, TIMEFRAME, API_KEY)

@@ -1,3 +1,5 @@
+"""Simple back testing script for a RSI trading strategy."""
+
 from datetime import time
 from typing import Optional, Tuple
 
@@ -26,9 +28,7 @@ TradeLog = list[dict[str, float]]
 
 # Load Historical Data
 def load_data(file_path: str) -> pd.DataFrame:
-    """
-    Load historical data from a CSV file.
-    """
+    """Load historical data from a CSV file."""
     df: pd.DataFrame = pd.read_csv(file_path, parse_dates=["timestamp"])
     df.set_index("timestamp", inplace=True)
     return df
@@ -36,9 +36,7 @@ def load_data(file_path: str) -> pd.DataFrame:
 
 # Compute RSI
 def calculate_rsi(data: pd.DataFrame, period: int) -> pd.DataFrame:
-    """
-    Calculate RSI for the given DataFrame.
-    """
+    """Calculate RSI for the given DataFrame."""
     delta = data["close"].diff()
     data["gain"] = np.where(delta > 0, delta, 0)
     data["loss"] = np.where(delta < 0, -delta, 0)
@@ -51,17 +49,13 @@ def calculate_rsi(data: pd.DataFrame, period: int) -> pd.DataFrame:
 
 # Filter for Market Hours
 def is_market_open(timestamp: pd.Timestamp) -> bool:
-    """
-    Check if a given timestamp is within market hours.
-    """
+    """Check if a given timestamp is within market hours."""
     return TRADING_START_TIME <= timestamp.time() <= TRADING_END_TIME
 
 
 # Multi-Timeframe Confirmation
 def confirm_trend(df: pd.DataFrame, idx: int) -> bool:
-    """
-    Confirm trend using 5m, 10m, and 15m RSI values.
-    """
+    """Confirm trend using 5m, 10m, and 15m RSI values."""
     try:
         # Aggregate data for 5m, 10m, and 15m timeframes
         df_5m = df.iloc[max(0, idx - 4) : idx + 1]  # Last 5 rows for 5m
@@ -83,6 +77,7 @@ def confirm_trend(df: pd.DataFrame, idx: int) -> bool:
 
 # Backtesting Logic
 def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]:
+    """Back testing logic to simulate trading strategy."""
     capital: float = initial_capital
     trade_log: TradeLog = []
     position: dict[str, Optional[float]] = {"entry_price": None, "contracts": 0, "average_price": None, "highest_price": None}
@@ -186,9 +181,7 @@ def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]
 
 # Main Backtest Execution
 def main() -> None:
-    """
-    Main function to load data, calculate RSI, and run the backtest.
-    """
+    """Main function to load data, calculate RSI, and run the backtest."""
     # TODO: Want to test it out while monitoring multiple stocks at the same time
     file_path: str = "./data/PLTR_data_1min_comb.csv"  # Update with the path to your CSV file
 

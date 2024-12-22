@@ -16,11 +16,11 @@ params = {
     "interval": INTERVAL,
     "apikey": API_KEY,
     "outputsize": "full",  # Fetch maximum data available
-    "datatype": "csv"
+    "datatype": "csv",
 }
 response = requests.get(url, params=params)
 
-file_name = f"{SYMBOL}_data_{INTERVAL}_extra_1.csv"
+file_name = f"{SYMBOL}_data_{INTERVAL}_extra_3.csv"
 
 # Save to CSV
 with open(file_name, "w") as file:

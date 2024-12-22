@@ -14,8 +14,8 @@ requests = "2.32.3"
 python-dotenv = "1.0.1"
 
 [tool.poetry.dev-dependencies]
-mypy==1.13.0
-ruff==0.8.3
+mypy = "1.13.0"
+ruff = "0.8.3"
 
 [build-system]
 requires = ["poetry-core"]

@@ -1,8 +1,10 @@
 """Simple back testing script for a RSI trading strategy."""
 
-from datetime import time
+from dataclasses import dataclass
+from datetime import datetime, time, timedelta
 from typing import Optional, Tuple
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
@@ -22,8 +24,21 @@ TRAILING_STOP_PERCENT = 0.05  # Increase to 3% formerly 1%
 TRADING_START_TIME: time = time(9, 30)  # Market open
 TRADING_END_TIME: time = time(16, 0)  # Market close
 
+
+@dataclass
+class Trade:
+    """Trade data class to store trade information."""
+
+    action: str
+    timestamp: datetime
+    price: Optional[float] = None
+    contracts: Optional[float] = None
+    capital: Optional[float] = None
+    gain_loss: Optional[float] = None
+
+
 # Define types for clarity
-TradeLog = list[dict[str, float]]
+TradeLog = list[Trade]
 
 
 # Load Historical Data
@@ -80,31 +95,26 @@ def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]
     """Back testing logic to simulate trading strategy."""
     capital: float = initial_capital
     trade_log: TradeLog = []
-    position: dict[str, Optional[float]] = {"entry_price": None, "contracts": 0, "average_price": None, "highest_price": None}
-    last_date: Optional[pd.Timestamp] = None  # Track the date of the previous row
+    position = {"entry_price": None, "contracts": 0, "average_price": None, "highest_price": None}
+    last_date: Optional[datetime] = None  # Track the date of the previous row
 
     for i in range(len(df)):
         row: pd.Series = df.iloc[i]
         current_price: float = row["close"]
         current_rsi: float = row["RSI"]
         current_time: pd.Timestamp = row.name
-        current_date: pd.Timestamp = current_time.date()
+        current_date: datetime = current_time.date()
 
         # Check if it's the start of a new market day
         if current_date != last_date:
             trade_log.append(
-                {
-                    "action": "START_DAY",
-                    "date": str(current_date),
-                    "time": str(current_time.time()),
-                    "price": None,
-                    "contracts": None,
-                    "capital": capital,
-                    "gain_loss": None,
-                    "timestamp": str(current_time),
-                }
+                Trade(
+                    action="START_DAY",
+                    timestamp=current_time,
+                    capital=capital,
+                )
             )
-            last_date = current_date  # Update the last_date
+            last_date = current_date
 
         # Skip rows outside market hours
         if not is_market_open(current_time):
@@ -116,8 +126,8 @@ def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]
             reserved_capital: float = RESERVE_CAPITAL_RATIO * capital
             trade_size = max(0, capital - reserved_capital)
 
-        # Entry Logic: Buy when RSI is oversold and trend is confirmed
-        if position["contracts"] == 0 and current_rsi < RSI_OVERSOLD:  # and confirm_trend(df, i):
+        # Entry Logic: Buy when RSI is oversold
+        if position["contracts"] == 0 and current_rsi < RSI_OVERSOLD:
             contracts: float = trade_size / current_price
             position["entry_price"] = current_price
             position["contracts"] = contracts
@@ -125,56 +135,49 @@ def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]
             position["highest_price"] = current_price
             capital -= trade_size
             trade_log.append(
-                {
-                    "action": "BUY",
-                    "date": str(current_date),
-                    "time": str(current_time.time()),
-                    "price": current_price,
-                    "contracts": contracts,
-                    "capital": capital,
-                    "gain_loss": 0,
-                    "timestamp": str(current_time),
-                }
+                Trade(
+                    action="BUY",
+                    timestamp=current_time,
+                    price=current_price,
+                    contracts=contracts,
+                    capital=capital,
+                )
             )
 
         # Update Highest Price for Trailing Stop Loss
         if position["contracts"] > 0:
             position["highest_price"] = max(position["highest_price"], current_price)
 
-            # Trailing Stop Loss: Sell if price drops 1% from the highest price
+            # Trailing Stop Loss: Sell if price drops below the trailing stop
             if current_price < position["highest_price"] * (1 - TRAILING_STOP_PERCENT):
                 exit_value: float = position["contracts"] * current_price
                 capital += exit_value
                 trade_log.append(
-                    {
-                        "action": "SELL_TRAILING_STOP",
-                        "date": str(current_date),
-                        "time": str(current_time.time()),
-                        "price": current_price,
-                        "contracts": position["contracts"],
-                        "capital": capital,
-                        "gain_loss": (current_price - position["entry_price"]) * position["contracts"],
-                        "timestamp": str(current_time),
-                    }
+                    Trade(
+                        action="SELL_TRAILING_STOP",
+                        timestamp=current_time,
+                        price=current_price,
+                        contracts=position["contracts"],
+                        capital=capital,
+                        gain_loss=(current_price - position["entry_price"]) * position["contracts"],
+                    )
                 )
                 position = {"entry_price": None, "contracts": 0, "average_price": None, "highest_price": None}
                 continue
 
-            # Exit Logic: Sell when RSI is overbought and trend is confirmed
+            # Exit Logic: Sell when RSI is overbought
             elif current_rsi > RSI_OVERBOUGHT and confirm_trend(df, i):
                 exit_value: float = position["contracts"] * current_price
                 capital += exit_value
                 trade_log.append(
-                    {
-                        "action": "SELL",
-                        "date": str(current_date),
-                        "time": str(current_time.time()),
-                        "price": current_price,
-                        "contracts": position["contracts"],
-                        "capital": capital,
-                        "gain_loss": (current_price - position["entry_price"]) * position["contracts"],
-                        "timestamp": str(current_time),
-                    }
+                    Trade(
+                        action="SELL",
+                        timestamp=current_time,
+                        price=current_price,
+                        contracts=position["contracts"],
+                        capital=capital,
+                        gain_loss=(current_price - position["entry_price"]) * position["contracts"],
+                    )
                 )
                 position = {"entry_price": None, "contracts": 0, "average_price": None, "highest_price": None}
 
@@ -184,16 +187,14 @@ def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]
         exit_value: float = position["contracts"] * final_price
         capital += exit_value
         trade_log.append(
-            {
-                "action": "FINAL_SELL",
-                "date": str(df.iloc[-1].name.date()),
-                "time": str(df.iloc[-1].name.time()),
-                "price": final_price,
-                "contracts": position["contracts"],
-                "capital": capital,
-                "gain_loss": (final_price - position["entry_price"]) * position["contracts"],
-                "timestamp": str(df.iloc[-1].name),
-            }
+            Trade(
+                action="FINAL_SELL",
+                timestamp=df.iloc[-1].name,
+                price=final_price,
+                contracts=position["contracts"],
+                capital=capital,
+                gain_loss=(final_price - position["entry_price"]) * position["contracts"],
+            )
         )
 
     return capital, trade_log
@@ -202,7 +203,6 @@ def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]
 # Main Backtest Execution
 def main() -> None:
     """Main function to load data, calculate RSI, and run the backtest."""
-    # TODO: Want to test it out while monitoring multiple stocks at the same time
     file_path: str = "./data/PLTR_data_1min_comb.csv"  # Update with the path to your CSV file
 
     print("Loading historical data...")
@@ -218,29 +218,136 @@ def main() -> None:
     print("Trade Log:")
     for trade in trade_log:
         print(
-            f"Action: {trade['action']}, Date: {trade['date']}, Time: {trade['time']}, Price: {trade['price']}, Contracts: {trade['contracts']}, Capital: {trade['capital']}, Gain/Loss: {trade['gain_loss']}"
+            f"Action: {trade.action}, Timestamp: {trade.timestamp}, Price: {trade.price}, Contracts: {trade.contracts}, Capital: {trade.capital}, Gain/Loss: {trade.gain_loss}"
         )
 
     print(f"Final Capital: ${final_capital:.2f}")
 
-    # # Plotting the data
-    # plt.figure(figsize=(14, 7))
-    # plt.plot(df.index, df["close"], label="Close Price")
+    # Overall Plot
+    print("Creating overall plot...")
+    plt.figure(figsize=(14, 7))
+    plt.plot(df.index, df["close"], label="Close Price", color="blue", linewidth=0.7)
 
-    # # Marking buy and sell points
-    # for trade in trade_log:
-    #     if trade["action"] == "BUY":
-    #         plt.scatter(trade["date"], trade["price"], marker="^", color="g", label="Buy")
-    #     elif trade["action"] == "SELL":
-    #         plt.scatter(trade["date"], trade["price"], marker="v", color="r", label="Sell")
+    for trade in trade_log:
+        trade_timestamp = trade.timestamp
 
-    # plt.title("Stock Price with Buy and Sell Signals")
-    # plt.xlabel("Date")
-    # plt.ylabel("Price")
-    # plt.legend()
+        if trade.action == "BUY":
+            plt.scatter(trade_timestamp, trade.price, marker="^", color="green", label="Buy", s=100)
+        elif trade.action in ["SELL", "SELL_TRAILING_STOP", "FINAL_SELL"]:
+            plt.scatter(trade_timestamp, trade.price, marker="v", color="red", label="Sell", s=100)
+            gain_loss = trade.gain_loss
+            plt.annotate(
+                f"{gain_loss:.2f}",
+                (trade_timestamp, trade.price),
+                textcoords="offset points",
+                xytext=(0, 10),
+                ha="center",
+                fontsize=8,
+                color="red" if gain_loss < 0 else "green",
+            )
 
-    # # Save the plot as an image
-    # plt.savefig("trade_signals.png")
+    plt.title("Overall Stock Price with Buy and Sell Signals")
+    plt.xlabel("Timestamp")
+    plt.ylabel("Price")
+    # plt.legend(loc="best")
+    plt.savefig("overall_trade_signals.png")
+    plt.close()
+
+    # Daily Plots
+    print("Creating daily plots...")
+    daily_groups = df.groupby(df.index.date)
+
+    for date, day_data in daily_groups:
+        plt.figure(figsize=(14, 7))
+        plt.plot(day_data.index, day_data["close"], label="Close Price", color="blue", linewidth=0.7)
+
+        # Filter trades for the current day
+        daily_trades = [trade for trade in trade_log if trade.timestamp.date() == date]
+
+        for trade in daily_trades:
+            trade_timestamp = trade.timestamp
+
+            if trade.action == "BUY":
+                plt.scatter(trade_timestamp, trade.price, marker="^", color="green", label="Buy", s=100)
+            elif trade.action in ["SELL", "SELL_TRAILING_STOP", "FINAL_SELL"]:
+                plt.scatter(trade_timestamp, trade.price, marker="v", color="red", label="Sell", s=100)
+                gain_loss = trade.gain_loss
+                plt.annotate(
+                    f"{gain_loss:.2f}",
+                    (trade_timestamp, trade.price),
+                    textcoords="offset points",
+                    xytext=(0, 10),
+                    ha="center",
+                    fontsize=8,
+                    color="red" if gain_loss < 0 else "green",
+                )
+
+        plt.title(f"Daily Stock Price with Buy and Sell Signals ({date})")
+        plt.xlabel("Timestamp")
+        plt.ylabel("Price")
+        plt.legend(loc="best")
+
+        # Save each daily plot
+        output_file = f"daily_trade_signals_{date}.png"
+        plt.savefig(output_file)
+        plt.close()
+
+    # Weekly Plots
+    print("Creating weekly plots...")
+    start_date = df.index.min().date()
+    end_date = df.index.max().date()
+
+    # Adjust start_date to the previous Monday if it's not already a Monday
+    if start_date.weekday() != 0:
+        start_date -= timedelta(days=start_date.weekday())
+
+    current_date = start_date
+
+    while current_date <= end_date:
+        week_start = current_date
+        week_end = week_start + timedelta(days=4)  # Monday to Friday
+        week_data = df.loc[week_start:week_end]
+
+        if not week_data.empty:
+            plt.figure(figsize=(14, 7))
+            plt.plot(week_data.index, week_data["close"], label="Close Price", color="blue", linewidth=0.7)
+
+            # Filter trades for the current week
+            weekly_trades = [trade for trade in trade_log if week_start <= trade.timestamp.date() <= week_end]
+
+            for trade in weekly_trades:
+                trade_timestamp = trade.timestamp
+
+                if trade.action == "BUY":
+                    plt.scatter(trade_timestamp, trade.price, marker="^", color="green", label="Buy", s=100)
+                elif trade.action in ["SELL", "SELL_TRAILING_STOP", "FINAL_SELL"]:
+                    plt.scatter(trade_timestamp, trade.price, marker="v", color="red", label="Sell", s=100)
+                    gain_loss = trade.gain_loss
+                    plt.annotate(
+                        f"{gain_loss:.2f}",
+                        (trade_timestamp, trade.price),
+                        textcoords="offset points",
+                        xytext=(0, 10),
+                        ha="center",
+                        fontsize=8,
+                        color="red" if gain_loss < 0 else "green",
+                    )
+
+            plt.title(f"Weekly Stock Price with Buy and Sell Signals ({week_start} to {week_end})")
+            plt.xlabel("Timestamp")
+            plt.ylabel("Price")
+            # plt.legend(loc="best")
+
+            # Save each weekly plot
+            output_file = f"weekly_trade_signals_{week_start}_to_{week_end}.png"
+            plt.savefig(output_file)
+            plt.close()
+
+        current_date = week_end + timedelta(days=3)  # Move to the next Monday
+
+    print("Weekly plots created successfully.")
+
+    print("Plots created successfully.")
 
 
 if __name__ == "__main__":

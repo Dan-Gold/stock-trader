@@ -96,10 +96,12 @@ def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]
                 {
                     "action": "START_DAY",
                     "date": str(current_date),
+                    "time": str(current_time.time()),
                     "price": None,
                     "contracts": None,
                     "capital": capital,
                     "gain_loss": None,
+                    "timestamp": str(current_time),
                 }
             )
             last_date = current_date  # Update the last_date
@@ -123,7 +125,16 @@ def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]
             position["highest_price"] = current_price
             capital -= trade_size
             trade_log.append(
-                {"action": "BUY", "price": current_price, "contracts": contracts, "capital": capital, "gain_loss": 0}
+                {
+                    "action": "BUY",
+                    "date": str(current_date),
+                    "time": str(current_time.time()),
+                    "price": current_price,
+                    "contracts": contracts,
+                    "capital": capital,
+                    "gain_loss": 0,
+                    "timestamp": str(current_time),
+                }
             )
 
         # Update Highest Price for Trailing Stop Loss
@@ -137,10 +148,13 @@ def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]
             trade_log.append(
                 {
                     "action": "SELL_TRAILING_STOP",
+                    "date": str(current_date),
+                    "time": str(current_time.time()),
                     "price": current_price,
                     "contracts": position["contracts"],
                     "capital": capital,
                     "gain_loss": (current_price - position["entry_price"]) * position["contracts"],
+                    "timestamp": str(current_time),
                 }
             )
             position = {"entry_price": None, "contracts": 0, "average_price": None, "highest_price": None}
@@ -153,10 +167,13 @@ def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]
             trade_log.append(
                 {
                     "action": "SELL",
+                    "date": str(current_date),
+                    "time": str(current_time.time()),
                     "price": current_price,
                     "contracts": position["contracts"],
                     "capital": capital,
                     "gain_loss": (current_price - position["entry_price"]) * position["contracts"],
+                    "timestamp": str(current_time),
                 }
             )
             position = {"entry_price": None, "contracts": 0, "average_price": None, "highest_price": None}
@@ -169,10 +186,13 @@ def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]
         trade_log.append(
             {
                 "action": "FINAL_SELL",
+                "date": str(df.iloc[-1].name.date()),
+                "time": str(df.iloc[-1].name.time()),
                 "price": final_price,
                 "contracts": position["contracts"],
                 "capital": capital,
                 "gain_loss": (final_price - position["entry_price"]) * position["contracts"],
+                "timestamp": str(df.iloc[-1].name),
             }
         )
 
@@ -197,9 +217,30 @@ def main() -> None:
 
     print("Trade Log:")
     for trade in trade_log:
-        print(trade)
+        print(
+            f"Action: {trade['action']}, Date: {trade['date']}, Time: {trade['time']}, Price: {trade['price']}, Contracts: {trade['contracts']}, Capital: {trade['capital']}, Gain/Loss: {trade['gain_loss']}"
+        )
 
     print(f"Final Capital: ${final_capital:.2f}")
+
+    # # Plotting the data
+    # plt.figure(figsize=(14, 7))
+    # plt.plot(df.index, df["close"], label="Close Price")
+
+    # # Marking buy and sell points
+    # for trade in trade_log:
+    #     if trade["action"] == "BUY":
+    #         plt.scatter(trade["date"], trade["price"], marker="^", color="g", label="Buy")
+    #     elif trade["action"] == "SELL":
+    #         plt.scatter(trade["date"], trade["price"], marker="v", color="r", label="Sell")
+
+    # plt.title("Stock Price with Buy and Sell Signals")
+    # plt.xlabel("Date")
+    # plt.ylabel("Price")
+    # plt.legend()
+
+    # # Save the plot as an image
+    # plt.savefig("trade_signals.png")
 
 
 if __name__ == "__main__":

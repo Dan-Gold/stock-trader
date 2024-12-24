@@ -12,7 +12,7 @@ RSI_OVERSOLD: int = 30
 RSI_OVERBOUGHT: int = 70
 AVERAGE_DOWN_RSI: int = 15  # RSI to trigger averaging down
 INITIAL_CAPITAL: float = 10000.0
-RESERVE_CAPITAL_RATIO: float = 0.05  # Reserve only 5% for averaging down
+RESERVE_CAPITAL_RATIO: float = 0.00  # Reserve only 5% for averaging down
 USE_ALL_CAPITAL: bool = True  # Toggle for "all-in" trading logic
 TRADE_SIZE: float = 1000.0
 
@@ -141,42 +141,42 @@ def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]
         if position["contracts"] > 0:
             position["highest_price"] = max(position["highest_price"], current_price)
 
-        # Trailing Stop Loss: Sell if price drops 1% from the highest price
-        if position["contracts"] > 0 and current_price < position["highest_price"] * (1 - TRAILING_STOP_PERCENT):
-            exit_value: float = position["contracts"] * current_price
-            capital += exit_value
-            trade_log.append(
-                {
-                    "action": "SELL_TRAILING_STOP",
-                    "date": str(current_date),
-                    "time": str(current_time.time()),
-                    "price": current_price,
-                    "contracts": position["contracts"],
-                    "capital": capital,
-                    "gain_loss": (current_price - position["entry_price"]) * position["contracts"],
-                    "timestamp": str(current_time),
-                }
-            )
-            position = {"entry_price": None, "contracts": 0, "average_price": None, "highest_price": None}
-            continue
+            # Trailing Stop Loss: Sell if price drops 1% from the highest price
+            if current_price < position["highest_price"] * (1 - TRAILING_STOP_PERCENT):
+                exit_value: float = position["contracts"] * current_price
+                capital += exit_value
+                trade_log.append(
+                    {
+                        "action": "SELL_TRAILING_STOP",
+                        "date": str(current_date),
+                        "time": str(current_time.time()),
+                        "price": current_price,
+                        "contracts": position["contracts"],
+                        "capital": capital,
+                        "gain_loss": (current_price - position["entry_price"]) * position["contracts"],
+                        "timestamp": str(current_time),
+                    }
+                )
+                position = {"entry_price": None, "contracts": 0, "average_price": None, "highest_price": None}
+                continue
 
-        # Exit Logic: Sell when RSI is overbought and trend is confirmed
-        elif position["contracts"] > 0 and current_rsi > RSI_OVERBOUGHT and confirm_trend(df, i):
-            exit_value: float = position["contracts"] * current_price
-            capital += exit_value
-            trade_log.append(
-                {
-                    "action": "SELL",
-                    "date": str(current_date),
-                    "time": str(current_time.time()),
-                    "price": current_price,
-                    "contracts": position["contracts"],
-                    "capital": capital,
-                    "gain_loss": (current_price - position["entry_price"]) * position["contracts"],
-                    "timestamp": str(current_time),
-                }
-            )
-            position = {"entry_price": None, "contracts": 0, "average_price": None, "highest_price": None}
+            # Exit Logic: Sell when RSI is overbought and trend is confirmed
+            elif current_rsi > RSI_OVERBOUGHT and confirm_trend(df, i):
+                exit_value: float = position["contracts"] * current_price
+                capital += exit_value
+                trade_log.append(
+                    {
+                        "action": "SELL",
+                        "date": str(current_date),
+                        "time": str(current_time.time()),
+                        "price": current_price,
+                        "contracts": position["contracts"],
+                        "capital": capital,
+                        "gain_loss": (current_price - position["entry_price"]) * position["contracts"],
+                        "timestamp": str(current_time),
+                    }
+                )
+                position = {"entry_price": None, "contracts": 0, "average_price": None, "highest_price": None}
 
     # Final Liquidation at the End of Backtest
     if position["contracts"] > 0:

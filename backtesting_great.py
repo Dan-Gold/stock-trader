@@ -37,6 +37,14 @@ class Trade:
     gain_loss: Optional[float] = None
 
 
+@dataclass
+class Position:
+    entry_price: Optional[float] = None
+    contracts: int = 0
+    average_price: Optional[float] = None
+    highest_price: Optional[float] = None
+
+
 # Define types for clarity
 TradeLog = list[Trade]
 
@@ -95,7 +103,8 @@ def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]
     """Back testing logic to simulate trading strategy."""
     capital: float = initial_capital
     trade_log: TradeLog = []
-    position = {"entry_price": None, "contracts": 0, "average_price": None, "highest_price": None}
+    # position = {"entry_price": None, "contracts": 0, "average_price": None, "highest_price": None}
+    position = Position()
     last_date: Optional[datetime] = None  # Track the date of the previous row
 
     for i in range(len(df)):
@@ -127,12 +136,12 @@ def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]
             trade_size = max(0, capital - reserved_capital)
 
         # Entry Logic: Buy when RSI is oversold
-        if position["contracts"] == 0 and current_rsi < RSI_OVERSOLD:
+        if position.contracts == 0 and current_rsi < RSI_OVERSOLD:
             contracts: float = trade_size / current_price
-            position["entry_price"] = current_price
-            position["contracts"] = contracts
-            position["average_price"] = current_price
-            position["highest_price"] = current_price
+            position.entry_price = current_price
+            position.contracts = contracts
+            position.average_price = current_price
+            position.highest_price = current_price
             capital -= trade_size
             trade_log.append(
                 Trade(
@@ -145,87 +154,71 @@ def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]
             )
 
         # Update Highest Price for Trailing Stop Loss
-        if position["contracts"] > 0:
-            position["highest_price"] = max(position["highest_price"], current_price)
+        if position.contracts > 0:
+            position.highest_price = max(position.highest_price, current_price)
 
             # Trailing Stop Loss: Sell if price drops below the trailing stop
-            if current_price < position["highest_price"] * (1 - TRAILING_STOP_PERCENT):
-                exit_value: float = position["contracts"] * current_price
+            if current_price < position.highest_price * (1 - TRAILING_STOP_PERCENT):
+                exit_value: float = position.contracts * current_price
                 capital += exit_value
                 trade_log.append(
                     Trade(
                         action="SELL_TRAILING_STOP",
                         timestamp=current_time,
                         price=current_price,
-                        contracts=position["contracts"],
+                        contracts=position.contracts,
                         capital=capital,
-                        gain_loss=(current_price - position["entry_price"]) * position["contracts"],
+                        gain_loss=(current_price - position.entry_price) * position.contracts,
                     )
                 )
-                position = {"entry_price": None, "contracts": 0, "average_price": None, "highest_price": None}
+                position.entry_price = None
+                position.contracts = 0
+                position.average_price = None
+                position.highest_price = None
                 continue
 
             # Exit Logic: Sell when RSI is overbought
             elif current_rsi > RSI_OVERBOUGHT and confirm_trend(df, i):
-                exit_value: float = position["contracts"] * current_price
+                exit_value: float = position.contracts * current_price
                 capital += exit_value
                 trade_log.append(
                     Trade(
                         action="SELL",
                         timestamp=current_time,
                         price=current_price,
-                        contracts=position["contracts"],
+                        contracts=position.contracts,
                         capital=capital,
-                        gain_loss=(current_price - position["entry_price"]) * position["contracts"],
+                        gain_loss=(current_price - position.entry_price) * position.contracts,
                     )
                 )
-                position = {"entry_price": None, "contracts": 0, "average_price": None, "highest_price": None}
+                position.entry_price = None
+                position.contracts = 0
+                position.average_price = None
+                position.highest_price = None
 
     # Final Liquidation at the End of Backtest
-    if position["contracts"] > 0:
+    if position.contracts > 0:
         final_price: float = df.iloc[-1]["close"]
-        exit_value: float = position["contracts"] * final_price
+        exit_value: float = position.contracts * final_price
         capital += exit_value
         trade_log.append(
             Trade(
                 action="FINAL_SELL",
                 timestamp=df.iloc[-1].name,
                 price=final_price,
-                contracts=position["contracts"],
+                contracts=position.contracts,
                 capital=capital,
-                gain_loss=(final_price - position["entry_price"]) * position["contracts"],
+                gain_loss=(final_price - position.entry_price) * position.contracts,
             )
         )
 
     return capital, trade_log
 
 
-# Main Backtest Execution
-def main() -> None:
-    """Main function to load data, calculate RSI, and run the backtest."""
-    file_path: str = "./data/PLTR_data_1min_comb.csv"  # Update with the path to your CSV file
-
-    print("Loading historical data...")
-    df: pd.DataFrame = load_data(file_path)
-    df.sort_index(ascending=True, inplace=True)
-
-    print("Calculating RSI...")
-    df = calculate_rsi(df, RSI_PERIOD)
-
-    print("Running backtest...")
-    final_capital, trade_log = backtest(df, INITIAL_CAPITAL)
-
-    print("Trade Log:")
-    for trade in trade_log:
-        print(
-            f"Action: {trade.action}, Timestamp: {trade.timestamp}, Price: {trade.price}, Contracts: {trade.contracts}, Capital: {trade.capital}, Gain/Loss: {trade.gain_loss}"
-        )
-
-    print(f"Final Capital: ${final_capital:.2f}")
-
-    # Overall Plot
+def overall_plot(df: pd.DataFrame, trade_log: TradeLog) -> None:
+    """Generate an overall plot."""
     print("Creating overall plot...")
-    plt.figure(figsize=(14, 7))
+    plt.figure(figsize=(40, 20), dpi=600)
     plt.plot(df.index, df["close"], label="Close Price", color="blue", linewidth=0.7)
 
     for trade in trade_log:
@@ -249,11 +242,12 @@ def main() -> None:
     plt.title("Overall Stock Price with Buy and Sell Signals")
     plt.xlabel("Timestamp")
     plt.ylabel("Price")
-    # plt.legend(loc="best")
-    plt.savefig("overall_trade_signals.png")
+    plt.savefig("overall_trade_signals.svg", format="svg")
     plt.close()
 
-    # Daily Plots
+
+def daily_plot(df: pd.DataFrame, trade_log: TradeLog) -> None:
+    """Generate daily plots."""
     print("Creating daily plots...")
     daily_groups = df.groupby(df.index.date)
 
@@ -292,7 +286,9 @@ def main() -> None:
         plt.savefig(output_file)
         plt.close()
 
-    # Weekly Plots
+
+def weekly_plot(df: pd.DataFrame, trade_log: TradeLog) -> None:
+    """Generate weekly plots."""
     print("Creating weekly plots...")
     start_date = df.index.min().date()
     end_date = df.index.max().date()
@@ -347,7 +343,40 @@ def main() -> None:
 
     print("Weekly plots created successfully.")
 
+
+def generate_all_plots(df: pd.DataFrame, trade_log: TradeLog) -> None:
+    """Generate all plots for the backtest."""
+    overall_plot(df, trade_log)
+    daily_plot(df, trade_log)
+    weekly_plot(df, trade_log)
+
     print("Plots created successfully.")
+
+
+# Main Backtest Execution
+def main() -> None:
+    """Main function to load data, calculate RSI, and run the backtest."""
+    file_path: str = "./data/PLTR_data_1min_comb.csv"  # Update with the path to your CSV file
+
+    print("Loading historical data...")
+    df: pd.DataFrame = load_data(file_path)
+    df.sort_index(ascending=True, inplace=True)
+
+    print("Calculating RSI...")
+    df = calculate_rsi(df, RSI_PERIOD)
+
+    print("Running backtest...")
+    final_capital, trade_log = backtest(df, INITIAL_CAPITAL)
+
+    print("Trade Log:")
+    for trade in trade_log:
+        print(
+            f"Action: {trade.action}, Timestamp: {trade.timestamp}, Price: {trade.price}, Contracts: {trade.contracts}, Capital: {trade.capital}, Gain/Loss: {trade.gain_loss}"
+        )
+
+    print(f"Final Capital: ${final_capital:.2f}")
+
+    generate_all_plots(df, trade_log)
 
 
 if __name__ == "__main__":

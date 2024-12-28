@@ -108,6 +108,116 @@ def confirm_trend(df: pd.DataFrame, idx: int) -> bool:
         return False  # Not enough data to confirm trend
 
 
+def start_new_day(
+    trade_log: TradeLog, current_time: pd.Timestamp, capital: float, last_date: date | None, current_date: date
+) -> date:
+    """Log the start of a new trading day."""
+    if current_date != last_date:
+        trade_log.append(Trade(action="START_DAY", timestamp=current_time, capital=capital))
+        return current_date
+    return last_date
+
+
+def calculate_trade_size(capital: float) -> float:
+    """Calculate the size of the trade based on settings."""
+    if USE_ALL_CAPITAL:
+        reserved_capital = RESERVE_CAPITAL_RATIO * capital
+        return max(0, capital - reserved_capital)
+    return TRADE_SIZE
+
+
+def handle_buy_logic(
+    position: Position,
+    current_rsi: float,
+    trade_size: float,
+    current_price: float,
+    capital: float,
+    trade_log: TradeLog,
+    current_time: pd.Timestamp,
+) -> tuple[float, Position]:
+    """Handle buying logic when RSI is oversold."""
+    if position.contracts == 0 and current_rsi < RSI_OVERSOLD:
+        if ALLOW_FRACTIONAL_SHARES:
+            contracts = trade_size / current_price
+        else:
+            contracts = float(trade_size // current_price)
+
+        position.entry_price = current_price
+        position.contracts = contracts
+        position.average_price = current_price
+        position.highest_price = current_price
+        capital -= trade_size
+        trade_log.append(
+            Trade(
+                action="BUY",
+                timestamp=current_time,
+                price=current_price,
+                contracts=contracts,
+                capital=capital,
+            )
+        )
+    return capital, position
+
+
+def handle_sell_logic(
+    position: Position,
+    current_rsi: float,
+    current_price: float,
+    capital: float,
+    trade_log: TradeLog,
+    current_time: pd.Timestamp,
+    df: pd.DataFrame,
+    i: int,
+) -> tuple[float, Position]:
+    """Handle selling logic when RSI is overbought or trailing stop loss is triggered."""
+    if position.contracts > 0:
+        if position.highest_price is None:
+            raise ValueError("Highest price is not set for an open position")
+
+        position.highest_price = max(position.highest_price, current_price)
+
+        if position.entry_price is None:
+            raise ValueError("Entry price is not set for an open position")
+
+        entry_price: float = position.entry_price
+
+        # Trailing Stop Loss: Sell if price drops below the trailing stop
+        if current_price < position.highest_price * (1 - TRAILING_STOP_PERCENT):
+            exit_value_stop_loss: float = position.contracts * current_price
+            capital += exit_value_stop_loss
+
+            trade_log.append(
+                Trade(
+                    action="SELL_TRAILING_STOP",
+                    timestamp=current_time,
+                    price=current_price,
+                    contracts=position.contracts,
+                    capital=capital,
+                    gain_loss=(current_price - entry_price) * position.contracts,
+                )
+            )
+            position = Position()
+
+        # Exit Logic: Sell when RSI is overbought
+        elif current_rsi > RSI_OVERBOUGHT and confirm_trend(df, i):
+            exit_value_sell: float = position.contracts * current_price
+            capital += exit_value_sell
+
+            trade_log.append(
+                Trade(
+                    action="SELL",
+                    timestamp=current_time,
+                    price=current_price,
+                    contracts=position.contracts,
+                    capital=capital,
+                    gain_loss=(current_price - entry_price) * position.contracts,
+                )
+            )
+            position = Position()
+
+    return capital, position
+
+
 # Backtesting Logic
 def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]:
     """Back testing logic to simulate trading strategy."""
@@ -124,94 +234,22 @@ def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]
         current_date: date = current_time.date()
 
         # Check if it's the start of a new market day
-        if current_date != last_date:
-            trade_log.append(
-                Trade(
-                    action="START_DAY",
-                    timestamp=current_time,
-                    capital=capital,
-                )
-            )
-            last_date = current_date
+        last_date = start_new_day(trade_log, current_time, capital, last_date, current_date)
 
         # Skip rows outside market hours
         if not is_market_open(current_time):
             continue
 
-        # Calculate dynamic trade size if "all-in" option is enabled
-        trade_size = TRADE_SIZE
-        if USE_ALL_CAPITAL:
-            reserved_capital: float = RESERVE_CAPITAL_RATIO * capital
-            trade_size = max(0, capital - reserved_capital)
+        # Calculate trade size
+        trade_size = calculate_trade_size(capital)
 
         # Entry Logic: Buy when RSI is oversold
-        if position.contracts == 0 and current_rsi < RSI_OVERSOLD:
-            if ALLOW_FRACTIONAL_SHARES:
-                contracts = trade_size / current_price
-            else:
-                contracts = float(trade_size // current_price)
-
-            position.entry_price = current_price
-            position.contracts = contracts
-            position.average_price = current_price
-            position.highest_price = current_price
-            capital -= trade_size
-            trade_log.append(
-                Trade(
-                    action="BUY",
-                    timestamp=current_time,
-                    price=current_price,
-                    contracts=contracts,
-                    capital=capital,
-                )
-            )
+        capital, position = handle_buy_logic(position, current_rsi, trade_size, current_price, capital, trade_log, current_time)
 
         # Update Highest Price for Trailing Stop Loss
-        if position.contracts > 0:
-            if position.highest_price is None:
-                raise ValueError("Highest price is not set for an open position")
+        capital, position = handle_sell_logic(position, current_rsi, current_price, capital, trade_log, current_time, df, i)
 
-            position.highest_price = max(position.highest_price, current_price)
-
-            if position.entry_price is None:
-                raise ValueError("Entry price is not set for an open position")
-
-            entry_price: float = position.entry_price
-
-            # Trailing Stop Loss: Sell if price drops below the trailing stop
-            if current_price < position.highest_price * (1 - TRAILING_STOP_PERCENT):
-                exit_value_stop_loss: float = position.contracts * current_price
-                capital += exit_value_stop_loss
-
-                trade_log.append(
-                    Trade(
-                        action="SELL_TRAILING_STOP",
-                        timestamp=current_time,
-                        price=current_price,
-                        contracts=position.contracts,
-                        capital=capital,
-                        gain_loss=(current_price - entry_price) * position.contracts,
-                    )
-                )
-                position = Position()
-                continue
-
-            # Exit Logic: Sell when RSI is overbought
-            elif current_rsi > RSI_OVERBOUGHT and confirm_trend(df, i):
-                exit_value_sell: float = position.contracts * current_price
-                capital += exit_value_sell
-
-                trade_log.append(
-                    Trade(
-                        action="SELL",
-                        timestamp=current_time,
-                        price=current_price,
-                        contracts=position.contracts,
-                        capital=capital,
-                        gain_loss=(current_price - entry_price) * position.contracts,
-                    )
-                )
-                position = Position()
+        assert True
 
     # Final Liquidation at the End of Backtest
     if position.contracts > 0:

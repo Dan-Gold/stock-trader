@@ -59,7 +59,6 @@ class Position:
 TradeLog = list[Trade]
 
 
-# Load Historical Data
 def load_data(file_path: str) -> pd.DataFrame:
     """Load historical data from a CSV file."""
     df: pd.DataFrame = pd.read_csv(file_path, parse_dates=["timestamp"])
@@ -67,7 +66,6 @@ def load_data(file_path: str) -> pd.DataFrame:
     return df
 
 
-# Compute RSI
 def calculate_rsi(data: pd.DataFrame, period: int) -> pd.DataFrame:
     """Calculate RSI for the given DataFrame."""
     delta: pd.Series = data["close"].diff().astype(float)
@@ -80,13 +78,11 @@ def calculate_rsi(data: pd.DataFrame, period: int) -> pd.DataFrame:
     return data
 
 
-# Filter for Market Hours
 def is_market_open(timestamp: pd.Timestamp) -> bool:
     """Check if a given timestamp is within market hours."""
     return TRADING_START_TIME <= timestamp.time() <= TRADING_END_TIME
 
 
-# Multi-Timeframe Confirmation
 def confirm_trend(df: pd.DataFrame, idx: int) -> bool:
     """Confirm trend using 5m, 10m, and 15m RSI values."""
     try:
@@ -218,13 +214,12 @@ def handle_sell_logic(
     return capital, position
 
 
-# Backtesting Logic
 def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]:
     """Back testing logic to simulate trading strategy."""
     capital: float = initial_capital
     trade_log: TradeLog = []
     position = Position()
-    last_date: date | None = None  # Track the date of the previous row
+    last_date: date | None = None
 
     for i in range(len(df)):
         row: pd.Series = df.iloc[i]
@@ -435,7 +430,6 @@ def generate_all_plots(df: pd.DataFrame, trade_log: TradeLog) -> None:
     print("Plots created successfully.")
 
 
-# Main Backtest Execution
 def main() -> None:
     """Main function to load data, calculate RSI, and run the backtest."""
     file_path: str = "./data/PLTR_data_1min_comb.csv"  # Update with the path to your CSV file

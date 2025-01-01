@@ -88,9 +88,11 @@ def is_market_open(timestamp: pd.Timestamp) -> bool:
     """Check if a given timestamp is within market hours."""
     return TRADING_START_TIME <= timestamp.time() <= TRADING_END_TIME
 
+
 def is_buying_time(timestamp: pd.Timestamp) -> bool:
     """Check if a given timestamp is within buying hours."""
     return BUYING_START_TIME <= timestamp.time() <= TRADING_END_TIME
+
 
 def is_selling_time(timestamp: pd.Timestamp) -> bool:
     """Check if a given timestamp is within selling hours."""
@@ -136,7 +138,7 @@ def calculate_trade_size(capital: float) -> float:
     return TRADE_SIZE
 
 
-def handle_buy_logic(
+def buy_trade_strategy(
     position: Position,
     current_rsi: float,
     trade_size: float,
@@ -146,30 +148,45 @@ def handle_buy_logic(
     current_time: pd.Timestamp,
 ) -> tuple[float, Position]:
     """Handle buying logic when RSI is oversold."""
-    if position.contracts == 0 and current_rsi < RSI_OVERSOLD:
-        if ALLOW_FRACTIONAL_SHARES:
-            contracts = trade_size / current_price
-        else:
-            contracts = float(trade_size // current_price)
+    if is_buying_time(current_time):
+        if position.contracts == 0 and current_rsi < RSI_OVERSOLD:
+            capital, position = execute_buy(position, trade_size, current_price, capital, trade_log, current_time)
 
-        position.entry_price = current_price
-        position.contracts = contracts
-        position.average_price = current_price
-        position.highest_price = current_price
-        capital -= trade_size
-        trade_log.append(
-            Trade(
-                action="BUY",
-                timestamp=current_time,
-                price=current_price,
-                contracts=contracts,
-                capital=capital,
-            )
-        )
     return capital, position
 
 
-def handle_sell_logic(
+def execute_buy(
+    position: Position,
+    trade_size: float,
+    current_price: float,
+    capital: float,
+    trade_log: TradeLog,
+    current_time: pd.Timestamp,
+) -> tuple[float, Position]:
+    """Execute buy."""
+    if ALLOW_FRACTIONAL_SHARES:
+        contracts = trade_size / current_price
+    else:
+        contracts = float(trade_size // current_price)
+
+    position.entry_price = current_price
+    position.contracts = contracts
+    position.average_price = current_price
+    position.highest_price = current_price
+    capital -= trade_size
+    trade_log.append(
+        Trade(
+            action="BUY",
+            timestamp=current_time,
+            price=current_price,
+            contracts=contracts,
+            capital=capital,
+        )
+    )
+    return capital, position
+
+
+def sell_trade_strategy(
     position: Position,
     current_rsi: float,
     current_price: float,
@@ -180,7 +197,7 @@ def handle_sell_logic(
     i: int,
 ) -> tuple[float, Position]:
     """Handle selling logic when RSI is overbought or trailing stop loss is triggered."""
-    if position.contracts > 0:
+    if position.contracts > 0 and is_selling_time(current_time):
         if position.highest_price is None:
             raise ValueError("Highest price is not set for an open position")
 
@@ -193,39 +210,42 @@ def handle_sell_logic(
 
         # Trailing Stop Loss: Sell if price drops below the trailing stop
         if current_price < position.highest_price * (1 - TRAILING_STOP_PERCENT):
-            exit_value_stop_loss: float = position.contracts * current_price
-            capital += exit_value_stop_loss
-
-            trade_log.append(
-                Trade(
-                    action="SELL_TRAILING_STOP",
-                    timestamp=current_time,
-                    price=current_price,
-                    contracts=position.contracts,
-                    capital=capital,
-                    gain_loss=(current_price - entry_price) * position.contracts,
-                )
+            capital, position = execute_sell(
+                "SELL_TRAILING_STOP", position, entry_price, current_price, capital, trade_log, current_time
             )
-            position = Position()
 
         # Exit Logic: Sell when RSI is overbought
         elif current_rsi > RSI_OVERBOUGHT and confirm_trend(df, i):
-            exit_value_sell: float = position.contracts * current_price
-            capital += exit_value_sell
-
-            trade_log.append(
-                Trade(
-                    action="SELL",
-                    timestamp=current_time,
-                    price=current_price,
-                    contracts=position.contracts,
-                    capital=capital,
-                    gain_loss=(current_price - entry_price) * position.contracts,
-                )
-            )
-            position = Position()
+            capital, position = execute_sell("SELL", position, entry_price, current_price, capital, trade_log, current_time)
 
     return capital, position
+
+
+def execute_sell(
+    action: str,
+    position: Position,
+    entry_price: float,
+    current_price: float,
+    capital: float,
+    trade_log: TradeLog,
+    current_time: pd.Timestamp,
+) -> tuple[float, Position]:
+    """Execute sell."""
+    exit_value_sell: float = position.contracts * current_price
+    capital += exit_value_sell
+
+    trade_log.append(
+        Trade(
+            action=action,
+            timestamp=current_time,
+            price=current_price,
+            contracts=position.contracts,
+            capital=capital,
+            gain_loss=(current_price - entry_price) * position.contracts,
+        )
+    )
+
+    return capital, Position()
 
 
 def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]:
@@ -253,11 +273,10 @@ def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]
         trade_size = calculate_trade_size(capital)
 
         # Entry Logic: Buy when RSI is oversold
-        if is_buying_time(current_time):
-            capital, position = handle_buy_logic(position, current_rsi, trade_size, current_price, capital, trade_log, current_time)
+        capital, position = buy_trade_strategy(position, current_rsi, trade_size, current_price, capital, trade_log, current_time)
 
         # Update Highest Price for Trailing Stop Loss
-        capital, position = handle_sell_logic(position, current_rsi, current_price, capital, trade_log, current_time, df, i)
+        capital, position = sell_trade_strategy(position, current_rsi, current_price, capital, trade_log, current_time, df, i)
 
         assert True
 

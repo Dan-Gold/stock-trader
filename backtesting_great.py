@@ -29,7 +29,7 @@ GENERATE_PLOTS: dict[str, bool] = {
 }
 
 # Market Timing
-TRADING_START_TIME: time = time(9, 30)  # Market open
+TRADING_START_TIME: time = time(9, 45)  # Market open
 TRADING_END_TIME: time = time(16, 0)  # Market close
 
 
@@ -305,6 +305,8 @@ def overall_plot(df: pd.DataFrame, trade_log: TradeLog) -> None:
     plt.savefig("overall_trade_signals.svg", format="svg")
     plt.close()
 
+    print("Overall plot created successfully.")
+
 
 def daily_plot(df: pd.DataFrame, trade_log: TradeLog) -> None:
     """Generate daily plots."""
@@ -353,6 +355,8 @@ def daily_plot(df: pd.DataFrame, trade_log: TradeLog) -> None:
         output_file = f"daily_trade_signals_{date_data}.png"
         plt.savefig(output_file)
         plt.close()
+
+    print("Daily plots created successfully.")
 
 
 def weekly_plot(df: pd.DataFrame, trade_log: TradeLog) -> None:
@@ -428,8 +432,6 @@ def generate_all_plots(df: pd.DataFrame, trade_log: TradeLog) -> None:
 
     if GENERATE_PLOTS["weekly"]:
         weekly_plot(df, trade_log)
-
-    print("Plots created successfully.")
 
 
 def main() -> None:

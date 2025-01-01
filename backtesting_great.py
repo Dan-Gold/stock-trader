@@ -42,7 +42,7 @@ class Trade:
     price: Optional[float] = None
     contracts: Optional[float] = None
     capital: Optional[float] = None
-    gain_loss: Optional[float] = None
+    gain_loss: float = 0.0
 
 
 @dataclass
@@ -276,13 +276,13 @@ def overall_plot(df: pd.DataFrame, trade_log: TradeLog) -> None:
     plt.plot(df.index, df["close"], label="Close Price", color="blue", linewidth=0.7)
 
     for trade in trade_log:
-        trade_timestamp = mdates.date2num(trade.timestamp)
+        if trade.action == "START_DAY":
+            continue
 
         if trade.price is None:
             raise ValueError("Trade price is not set")
 
-        if trade.gain_loss is None:
-            raise ValueError("Trade gain/loss is not set")
+        trade_timestamp = mdates.date2num(trade.timestamp)
 
         if trade.action == "BUY":
             plt.scatter(trade_timestamp, trade.price, marker="^", color="green", label="Buy", s=100)
@@ -309,7 +309,9 @@ def overall_plot(df: pd.DataFrame, trade_log: TradeLog) -> None:
 def daily_plot(df: pd.DataFrame, trade_log: TradeLog) -> None:
     """Generate daily plots."""
     print("Creating daily plots...")
-    daily_groups = df.groupby(df.index)
+
+    # Group by date
+    daily_groups = df.groupby(df.index.to_series().dt.date)
 
     for date_data, day_data in daily_groups:
         plt.figure(figsize=(14, 7))
@@ -319,13 +321,13 @@ def daily_plot(df: pd.DataFrame, trade_log: TradeLog) -> None:
         daily_trades = [trade for trade in trade_log if trade.timestamp.date() == date_data]
 
         for trade in daily_trades:
-            trade_timestamp = mdates.date2num(trade.timestamp)
+            if trade.action == "START_DAY":
+                continue
 
             if trade.price is None:
                 raise ValueError("Trade price is not set")
 
-            if trade.gain_loss is None:
-                raise ValueError("Trade gain/loss is not set")
+            trade_timestamp = mdates.date2num(trade.timestamp)
 
             if trade.action == "BUY":
                 plt.scatter(trade_timestamp, trade.price, marker="^", color="green", label="Buy", s=100)
@@ -378,13 +380,13 @@ def weekly_plot(df: pd.DataFrame, trade_log: TradeLog) -> None:
             weekly_trades = [trade for trade in trade_log if week_start <= trade.timestamp.date() <= week_end]
 
             for trade in weekly_trades:
-                trade_timestamp = mdates.date2num(trade.timestamp)
+                if trade.action == "START_DAY":
+                    continue
 
                 if trade.price is None:
                     raise ValueError("Trade price is not set")
 
-                if trade.gain_loss is None:
-                    raise ValueError("Trade gain/loss is not set")
+                trade_timestamp = mdates.date2num(trade.timestamp)
 
                 if trade.action == "BUY":
                     plt.scatter(trade_timestamp, trade.price, marker="^", color="green", label="Buy", s=100)

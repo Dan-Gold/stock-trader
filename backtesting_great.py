@@ -29,8 +29,14 @@ GENERATE_PLOTS: dict[str, bool] = {
 }
 
 # Market Timing
-TRADING_START_TIME: time = time(9, 45)  # Market open
+TRADING_START_TIME: time = time(9, 30)  # Market open
 TRADING_END_TIME: time = time(16, 0)  # Market close
+
+BUYING_START_TIME: time = time(9, 45)
+BUYING_END_TIME: time = time(16, 0)
+
+SELLING_START_TIME: time = time(9, 30)
+SELLING_END_TIME: time = time(16, 0)
 
 
 @dataclass
@@ -81,6 +87,14 @@ def calculate_rsi(data: pd.DataFrame, period: int) -> pd.DataFrame:
 def is_market_open(timestamp: pd.Timestamp) -> bool:
     """Check if a given timestamp is within market hours."""
     return TRADING_START_TIME <= timestamp.time() <= TRADING_END_TIME
+
+def is_buying_time(timestamp: pd.Timestamp) -> bool:
+    """Check if a given timestamp is within buying hours."""
+    return BUYING_START_TIME <= timestamp.time() <= TRADING_END_TIME
+
+def is_selling_time(timestamp: pd.Timestamp) -> bool:
+    """Check if a given timestamp is within selling hours."""
+    return SELLING_START_TIME <= timestamp.time() <= TRADING_END_TIME
 
 
 def confirm_trend(df: pd.DataFrame, idx: int) -> bool:
@@ -239,7 +253,8 @@ def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]
         trade_size = calculate_trade_size(capital)
 
         # Entry Logic: Buy when RSI is oversold
-        capital, position = handle_buy_logic(position, current_rsi, trade_size, current_price, capital, trade_log, current_time)
+        if is_buying_time(current_time):
+            capital, position = handle_buy_logic(position, current_rsi, trade_size, current_price, capital, trade_log, current_time)
 
         # Update Highest Price for Trailing Stop Loss
         capital, position = handle_sell_logic(position, current_rsi, current_price, capital, trade_log, current_time, df, i)

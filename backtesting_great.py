@@ -248,6 +248,30 @@ def execute_sell(
     return capital, Position()
 
 
+def liquidate_position(position: Position, df: pd.DataFrame, capital: float, trade_log: TradeLog) -> float:
+    """Liquidate position at the end of the day."""
+    if position.contracts > 0:
+        if position.entry_price is None:
+            raise ValueError("Entry price is not set for an open position")
+
+        final_price: float = df.iloc[-1]["close"]
+        exit_value_final: float = position.contracts * final_price
+        capital += exit_value_final
+
+        trade_log.append(
+            Trade(
+                action="FINAL_SELL",
+                timestamp=cast(datetime, df.iloc[-1].name),
+                price=final_price,
+                contracts=position.contracts,
+                capital=capital,
+                gain_loss=(final_price - position.entry_price) * position.contracts,
+            )
+        )
+
+    return capital
+
+
 def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]:
     """Back testing logic to simulate trading strategy."""
     capital: float = initial_capital
@@ -281,24 +305,7 @@ def backtest(df: pd.DataFrame, initial_capital: float) -> Tuple[float, TradeLog]
         assert True
 
     # Final Liquidation at the End of Backtest
-    if position.contracts > 0:
-        if position.entry_price is None:
-            raise ValueError("Entry price is not set for an open position")
-
-        final_price: float = df.iloc[-1]["close"]
-        exit_value_final: float = position.contracts * final_price
-        capital += exit_value_final
-
-        trade_log.append(
-            Trade(
-                action="FINAL_SELL",
-                timestamp=cast(datetime, df.iloc[-1].name),
-                price=final_price,
-                contracts=position.contracts,
-                capital=capital,
-                gain_loss=(final_price - position.entry_price) * position.contracts,
-            )
-        )
+    capital = liquidate_position(position, df, capital, trade_log)
 
     return capital, trade_log
 

@@ -7,19 +7,21 @@ select = [
     "N",   # pep8-naming
     "F",   # pyflakes - flake8
     "E",   # pycodesytle - flake8
+    "W",   # pycodesytle warnings - flake8
     "C90", # mccabe - flake8
     "D",   # pydocstyle - flake8-docstring
+    "B",   # flake8-bugbear
+    "F",   # flake8 built-in checks
+    "T10", # flake8-type-checking
+    "RUF", # ruff built-in checks
+    "C4",  # flake8-comprehensions
 ]
-ignore = ["D104", "D105", "D107", "D206", "D401", "E501"]
+ignore = ["D104", "D105", "D107"]
 
 isort.combine-as-imports = true
 isort.known-first-party = []
-isort.known-local-folder = []
+isort.known-local-folder = ["stock_trader", "tests"]
 
 pep8-naming.classmethod-decorators = ["classmethod", "root_validator", "validator"]
 
-per-file-ignores."database/versions/*.py" = ["D103"]
-per-file-ignores."**/tests/**/test_*.py" = ["D100", "D101", "D102", "D103"]
-per-file-ignores."test/**/*.py" = ["D100"]
-
-pydocstyle.convention = "pep257"
+pydocstyle.convention = "google"

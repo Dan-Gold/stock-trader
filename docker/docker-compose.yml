@@ -1,0 +1,43 @@
+services:
+
+    # Stock Trader Base
+  stock_trader_base:
+    container_name: stock_trader_base
+    image: stock_trader
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - dev.env
+    networks:
+      - app_network
+
+  # Apply Database migrations
+  stock_trader_db_init:
+    container_name: stock_trader_db_init
+    command: python -m stock_trader.db.migrations.create_database
+    restart: "no"
+    extends:
+      service: stock_trader_base
+
+  # Generate Database migrations
+  stock_trader_db_migration:
+    container_name: stock_trader_db_migration
+    restart: "no"
+    extends:
+      service: stock_trader_base
+
+  # Stock Trader API (TODO: placeholder)
+  stock_trader_api:
+    container_name: stock_trader_api
+    depends_on:
+      stock_trader_db_init:
+        condition: service_completed_successfully
+    command: uvicorn stock_trader.api.main:app --host
+    extends:
+      service: stock_trader_base
+
+networks:
+  app_network:
+    external: true

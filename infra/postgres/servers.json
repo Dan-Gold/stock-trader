@@ -1,0 +1,15 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Stock Trader DB",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "Username": "postgres",
+      "Password": "postgres",
+      "MaintenanceDB": "postgres",
+      "SSLMode": "prefer",
+      "Shared": false
+    }
+  }
+}

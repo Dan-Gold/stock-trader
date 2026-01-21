@@ -1,11 +1,10 @@
+"""Create the database if it does not exist and apply migrations."""
+
 import logging
 
 import sqlalchemy_utils
-from sqlalchemy import create_engine, inspect
-from sqlalchemy.schema import CreateSchema
 
 from stock_trader.db.db_helpers import apply_migrations, get_database_url
-from stock_trader.db.models import DatabaseModelBase
 from stock_trader.entrypoints.config import get_config
 from stock_trader.logging import setup_logging
 

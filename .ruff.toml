@@ -16,7 +16,7 @@ select = [
     "RUF", # ruff built-in checks
     "C4",  # flake8-comprehensions
 ]
-ignore = ["D104", "D105", "D107"]
+ignore = ["D104", "D105", "D107", "F821"]
 
 isort.combine-as-imports = true
 isort.known-first-party = []

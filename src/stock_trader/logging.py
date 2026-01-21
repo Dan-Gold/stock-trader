@@ -1,9 +1,12 @@
+"""Logging configuration for the stock trader application."""
+
 import logging
 
 from stock_trader.entrypoints.config import get_config
 
 
 def setup_logging() -> None:
+    """Set up logging configuration based on application settings."""
     config = get_config()
 
     logging.basicConfig(

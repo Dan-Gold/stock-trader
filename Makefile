@@ -50,6 +50,10 @@ stock-trader-migrate: stock-trader-build ## Run database alembic migrations
 	$(DOCKER_COMPOSE_COMMAND) run --rm stock_trader_db_init
 
 
+.PHONY: stock-trader-up
+stock-trader-up: stock-trader-build ## Start stock-trader service
+	$(DOCKER_COMPOSE_COMMAND) up -d stock_trader_api
+
 # ----------------------------
 # Redis (delegation only)
 # ----------------------------

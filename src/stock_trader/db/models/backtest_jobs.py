@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql.sqltypes import Enum as SqlEnum
 
 from stock_trader.db.models import DatabaseModelBase
+from stock_trader.models.backtest_create_request import BacktestCreateRequest
 from stock_trader.models.shared_enums import BacktestStatusEnum
 
 backtest_job_status: SqlEnum = types.Enum(
@@ -42,3 +43,17 @@ class BacktestJobTableSchema(DatabaseModelBase):
     )
     start_time: Mapped[datetime] = mapped_column(postgresql.TIMESTAMP(timezone=True), nullable=True)
     end_time: Mapped[datetime | None] = mapped_column(postgresql.TIMESTAMP(timezone=True), nullable=True)
+
+    @classmethod
+    def from_request(cls, backtest_request: BacktestCreateRequest) -> "BacktestJobTableSchema":
+        """Convert the backtest job request to the database model.
+
+        Returns:
+            A database representation to create the backtest job.
+        """
+        return cls(
+            status=BacktestStatusEnum.PENDING,
+            strategy_name=backtest_request.strategy_name,
+            symbols=backtest_request.symbols,
+            parameters=backtest_request.parameters,
+        )

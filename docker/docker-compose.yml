@@ -28,15 +28,17 @@ services:
     extends:
       service: stock_trader_base
 
-  # Stock Trader API (TODO: placeholder)
+  # Stock Trader API
   stock_trader_api:
     container_name: stock_trader_api
     depends_on:
       stock_trader_db_init:
         condition: service_completed_successfully
-    command: uvicorn stock_trader.api.main:app --host
+    command: ["uvicorn", "stock_trader.entrypoints.api_server:server", "--host", "0.0.0.0", "--port", "8000"]
     extends:
       service: stock_trader_base
+    ports:
+      - "8000:8000"
 
 networks:
   app_network:

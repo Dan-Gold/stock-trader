@@ -1,4 +1,5 @@
 """Main API router."""
+
 from fastapi import APIRouter, FastAPI
 
 from stock_trader.api.exception_handlers import add_exception_handlers

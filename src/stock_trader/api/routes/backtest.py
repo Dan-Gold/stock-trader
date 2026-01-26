@@ -3,8 +3,10 @@
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Depends, Query, status
 
+from stock_trader.api.dependencies import get_backtest_service
+from stock_trader.api.services.backtest_service import BacktestService
 from stock_trader.models.backtest_create_request import BacktestCreateRequest
 from stock_trader.models.responses.backtest_create_response import BacktestCreateResponse
 from stock_trader.models.responses.backtest_response import BacktestResponse
@@ -21,20 +23,22 @@ router = APIRouter(prefix="/backtests", tags=["backtests"])
     status_code=status.HTTP_202_ACCEPTED,
     summary="Create a new backtest job",
 )
-async def create_backtest(request: BacktestCreateRequest) -> BacktestCreateResponse:
+async def create_backtest(
+    request: BacktestCreateRequest, backtest_service: BacktestService = Depends(get_backtest_service)
+) -> BacktestCreateResponse:
     """Create a new backtest job.
 
     The job is created with PENDING status and queued for async processing.
 
     Args:
         request: The backtest configuration.
+        backtest_service: The backtest service dependency.
 
     Returns:
         The created job's UUID and initial status.
     """
-    # TODO: Create job in database
-    # TODO: Push job to Redis queue
-    raise NotImplementedError("Backtest creation not yet implemented")
+    job = await backtest_service.create_backtest_job(backtest_request=request)
+    return BacktestCreateResponse(uuid=job.uuid, status=job.status)
 
 
 @router.get(

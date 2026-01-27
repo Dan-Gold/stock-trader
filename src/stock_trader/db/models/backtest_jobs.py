@@ -41,7 +41,7 @@ class BacktestJobTableSchema(DatabaseModelBase):
         server_default=func.now(),
         nullable=False,
     )
-    start_time: Mapped[datetime] = mapped_column(postgresql.TIMESTAMP(timezone=True), nullable=True)
+    start_time: Mapped[datetime | None] = mapped_column(postgresql.TIMESTAMP(timezone=True), nullable=True)
     end_time: Mapped[datetime | None] = mapped_column(postgresql.TIMESTAMP(timezone=True), nullable=True)
 
     @classmethod

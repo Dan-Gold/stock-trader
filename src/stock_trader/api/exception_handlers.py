@@ -7,11 +7,14 @@ from collections.abc import Awaitable, Callable
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
+from stock_trader.models.exceptions import JobNotFoundException
+
 logger = logging.getLogger(__name__)
 
 
 SIMPLE_EXCEPTION_HANDLERS: dict[type[Exception], int] = {
-    ValueError: 400,
+    ValueError: status.HTTP_400_BAD_REQUEST,
+    JobNotFoundException: status.HTTP_404_NOT_FOUND,
 }
 
 TRACEBACK_EXCEPTION_HANDLERS: dict[type[Exception], int] = {

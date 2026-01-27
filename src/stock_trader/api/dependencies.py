@@ -2,10 +2,11 @@
 
 from stock_trader.api.services.backtest_service import BacktestService
 from stock_trader.db.db_engine import database_session
+from stock_trader.db.interfaces.backtest_repo_interface import IBacktestRepoInterface
 from stock_trader.db.repositories.backtest_repo import BacktestRepository
 
 
-def get_backtest_repository() -> BacktestRepository:
+def get_backtest_repository() -> IBacktestRepoInterface:
     """Get the backtest repository dependency.
 
     Returns:

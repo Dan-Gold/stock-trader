@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query, status
 
 from stock_trader.api.dependencies import get_backtest_service
 from stock_trader.api.services.backtest_service import BacktestService
+from stock_trader.db.models.backtest_jobs import BacktestJobTableSchema
 from stock_trader.models.backtest_create_request import BacktestCreateRequest
 from stock_trader.models.responses.backtest_create_response import BacktestCreateResponse
 from stock_trader.models.responses.backtest_response import BacktestResponse
@@ -15,6 +16,8 @@ from stock_trader.models.shared_enums import BacktestStatusEnum
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/backtests", tags=["backtests"])
+
+# TODO: Consider in the future creating a domain model and UI model
 
 
 @router.post(
@@ -46,11 +49,12 @@ async def create_backtest(
     response_model=BacktestResponse,
     summary="Get backtest job status",
 )
-async def get_backtest(job_id: UUID) -> BacktestResponse:
+async def get_backtest(job_id: UUID, backtest_service: BacktestService = Depends(get_backtest_service)) -> BacktestResponse:
     """Get the current status and details of a backtest job.
 
     Args:
         job_id: The UUID of the backtest job.
+        backtest_service: The backtest service dependency.
 
     Returns:
         The job details including current status.
@@ -58,8 +62,18 @@ async def get_backtest(job_id: UUID) -> BacktestResponse:
     Raises:
         HTTPException: 404 if job not found.
     """
-    # TODO: Fetch job from database
-    raise NotImplementedError("Backtest retrieval not yet implemented")
+    job: BacktestJobTableSchema = await backtest_service.get_backtest_job(job_id=job_id)
+    return BacktestResponse(
+        uuid=job.uuid,
+        status=job.status,
+        strategy_name=job.strategy_name,
+        symbols=job.symbols,
+        parameters=job.parameters,
+        error=job.error,
+        create_time=job.create_time,
+        start_time=job.start_time,
+        end_time=job.end_time,
+    )
 
 
 @router.get(
@@ -68,17 +82,39 @@ async def get_backtest(job_id: UUID) -> BacktestResponse:
     summary="List backtest jobs",
 )
 async def list_backtests(
+    backtest_service: BacktestService = Depends(get_backtest_service),
     status_filter: BacktestStatusEnum | None = None,
+    offset: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> list[BacktestResponse]:
-    """List backtest jobs, optionally filtered by status.
+    """List backtest jobs with pagination.
 
     Args:
+        backtest_service: The backtest service dependency.
         status_filter: Optional status to filter by.
-        limit: Maximum number of results (1-100).
+        offset: Number of records to skip (0-indexed).
+        limit: Maximum number of results to return (1-100).
 
     Returns:
         List of backtest jobs.
     """
-    # TODO: Query jobs from database
-    raise NotImplementedError("Backtest listing not yet implemented")
+    jobs = await backtest_service.list_backtest_jobs(
+        status_filter=status_filter,
+        offset=offset,
+        limit=limit,
+    )
+
+    return [
+        BacktestResponse(
+            uuid=job.uuid,
+            status=job.status,
+            strategy_name=job.strategy_name,
+            symbols=job.symbols,
+            parameters=job.parameters,
+            error=job.error,
+            create_time=job.create_time,
+            start_time=job.start_time,
+            end_time=job.end_time,
+        )
+        for job in jobs
+    ]

@@ -1,9 +1,16 @@
 """Repository for backtesting-related database operations."""
 
+from uuid import UUID
+
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from stock_trader.db.models.backtest_jobs import BacktestJobTableSchema
 from stock_trader.models.backtest_create_request import BacktestCreateRequest
+from stock_trader.models.exceptions import JobNotFoundException
+from stock_trader.models.shared_enums import BacktestStatusEnum
+
+# TODO: Implement domain model to convert DB models to?
 
 
 class BacktestRepository:
@@ -27,3 +34,40 @@ class BacktestRepository:
             await session.commit()
             await session.refresh(backtest_db)
             return backtest_db
+
+    async def get_backtest_job(self, job_id: UUID) -> BacktestJobTableSchema:
+        """Get a backtest job by its UUID.
+
+        Args:
+            job_id: The UUID of the backtest job.
+
+        Returns:
+            The backtest job record.
+        """
+        async with self.database_session() as session:
+            job_query = await session.execute(select(BacktestJobTableSchema).where(BacktestJobTableSchema.uuid == job_id))
+
+            result = job_query.scalar_one_or_none()
+
+        if not result:
+            raise JobNotFoundException(f"Backtest job with ID {job_id} not found")
+
+        return result
+
+    async def list_backtest_jobs(
+        self,
+        status_filter: BacktestStatusEnum | None = None,
+        offset: int = 0,
+        limit: int = 20,
+    ) -> list[BacktestJobTableSchema]:
+        """List backtest jobs from database with pagination."""
+        async with self.database_session() as session:
+            query = select(BacktestJobTableSchema)
+
+            if status_filter:
+                query = query.where(BacktestJobTableSchema.status == status_filter)
+
+            query = query.offset(offset).limit(limit)
+            result = await session.execute(query)
+
+        return result.scalars().all()

@@ -1,5 +1,6 @@
 """Backtest response model."""
 
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -16,3 +17,6 @@ class BacktestResponse(BaseModel):
     symbols: list[str]
     parameters: dict
     error: str | None = None
+    create_time: datetime | None = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None

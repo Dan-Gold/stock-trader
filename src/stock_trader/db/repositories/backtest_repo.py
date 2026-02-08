@@ -1,5 +1,7 @@
 """Repository for backtesting-related database operations."""
 
+from collections.abc import Sequence
+from typing import cast
 from uuid import UUID
 
 from sqlalchemy import select
@@ -52,14 +54,14 @@ class BacktestRepository:
         if not result:
             raise JobNotFoundException(f"Backtest job with ID {job_id} not found")
 
-        return result
+        return cast(BacktestJobTableSchema, result)
 
     async def list_backtest_jobs(
         self,
         status_filter: BacktestStatusEnum | None = None,
         offset: int = 0,
         limit: int = 20,
-    ) -> list[BacktestJobTableSchema]:
+    ) -> Sequence[BacktestJobTableSchema]:
         """List backtest jobs from database with pagination."""
         async with self.database_session() as session:
             query = select(BacktestJobTableSchema)

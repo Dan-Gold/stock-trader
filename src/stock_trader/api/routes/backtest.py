@@ -27,7 +27,7 @@ router = APIRouter(prefix="/backtests", tags=["backtests"])
     summary="Create a new backtest job",
 )
 async def create_backtest(
-    request: BacktestCreateRequest, backtest_service: BacktestService = Depends(get_backtest_service)
+    request: BacktestCreateRequest, backtest_service: BacktestService = Depends(get_backtest_service)  # noqa: B008
 ) -> BacktestCreateResponse:
     """Create a new backtest job.
 
@@ -49,7 +49,7 @@ async def create_backtest(
     response_model=BacktestResponse,
     summary="Get backtest job status",
 )
-async def get_backtest(job_id: UUID, backtest_service: BacktestService = Depends(get_backtest_service)) -> BacktestResponse:
+async def get_backtest(job_id: UUID, backtest_service: BacktestService = Depends(get_backtest_service)) -> BacktestResponse:  # noqa: B008
     """Get the current status and details of a backtest job.
 
     Args:
@@ -76,13 +76,30 @@ async def get_backtest(job_id: UUID, backtest_service: BacktestService = Depends
     )
 
 
+@router.put("/{job_id}/enqueue", summary="Enqueue backtest job")
+async def enqueue_backtest(job_id: UUID, backtest_service: BacktestService = Depends(get_backtest_service)) -> None:  # noqa: B008
+    """Enqueue a backtest job for processing.
+
+    Args:
+        job_id: The UUID of the backtest job.
+        backtest_service: The backtest service dependency.
+
+    Returns:
+        None
+
+    Raises:
+        HTTPException: 404 if job not found, 400 if job is not in PENDING status.
+    """
+    await backtest_service.enqueue_backtest_job(job_id=job_id)
+
+
 @router.get(
     "",
     response_model=list[BacktestResponse],
     summary="List backtest jobs",
 )
 async def list_backtests(
-    backtest_service: BacktestService = Depends(get_backtest_service),
+    backtest_service: BacktestService = Depends(get_backtest_service),  # noqa: B008
     status_filter: BacktestStatusEnum | None = None,
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=100),

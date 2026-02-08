@@ -1,12 +1,18 @@
 """Interface for backtest repository implementations."""
 
-from asyncio import Protocol
+from collections.abc import Sequence
+from typing import Protocol
+from uuid import UUID
+
+from stock_trader.db.models.backtest_jobs import BacktestJobTableSchema
+from stock_trader.models.backtest_create_request import BacktestCreateRequest
+from stock_trader.models.shared_enums import BacktestStatusEnum
 
 
 class IBacktestRepoInterface(Protocol):
     """Interface for backtest repository implementations."""
 
-    async def create_backtest_job(self, backtest_request) -> object:
+    async def create_backtest_job(self, backtest_request: BacktestCreateRequest) -> BacktestJobTableSchema:
         """Create a new backtest job in the database.
 
         Args:
@@ -17,7 +23,7 @@ class IBacktestRepoInterface(Protocol):
         """
         ...
 
-    async def get_backtest_job(self, job_id: str) -> object:
+    async def get_backtest_job(self, job_id: UUID) -> BacktestJobTableSchema:
         """Get a backtest job by its UUID.
 
         Args:
@@ -28,10 +34,11 @@ class IBacktestRepoInterface(Protocol):
         """
         ...
 
-    async def list_backtest_jobs(self) -> list[object]:
-        """List all backtest jobs.
-
-        Returns:
-            A list of backtest job records.
-        """
+    async def list_backtest_jobs(
+        self,
+        status_filter: BacktestStatusEnum | None = None,
+        offset: int = 0,
+        limit: int = 20,
+    ) -> Sequence[BacktestJobTableSchema]:
+        """List backtest jobs from database with pagination."""
         ...

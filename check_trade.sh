@@ -2,8 +2,11 @@ clear
 clear
 
 ruff check ./ --fix
+
+clear
+clear
+
 ruff format ./
+ruff check ./ --fix
 
-# poetry run mypy ./backtesting_great.py
-
-# poetry run mypy ./
+make stock-trader-mypy

@@ -40,6 +40,17 @@ services:
     ports:
       - "8000:8000"
 
+  # Stock Trader Tests
+  stock_trader_tests:
+    container_name: stock_trader_tests
+    image: tests
+    build:
+      target: stock-trader-tests
+      args:
+        PROD_BUILD_REQ_NAME: stock-trader-base-build
+    extends:
+      service: stock_trader_base
+
 networks:
   app_network:
     external: true

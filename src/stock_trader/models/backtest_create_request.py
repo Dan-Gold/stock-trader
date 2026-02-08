@@ -8,4 +8,4 @@ class BacktestCreateRequest(BaseModel):
 
     strategy_name: str = Field(..., max_length=50, description="Name of the trading strategy to run")
     symbols: list[str] = Field(..., min_length=1, description="List of stock symbols to backtest")
-    parameters: dict = Field(default_factory=dict, description="Strategy-specific parameters")
+    parameters: dict[str, str | int | float | bool] = Field(default_factory=dict, description="Strategy-specific parameters")

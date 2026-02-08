@@ -31,9 +31,6 @@ FROM stock-trader-build AS stock-trader-test-build
 # Only install the test dependencies
 RUN poetry install --only test --no-root
 
-#### INTERMEDIATE BUILD. ####
-# FROM ${PROD_BUILD_REQ_NAME} AS stock-trader-base-build
-
 #### PRODUCTION IMAGE. ####
 FROM python:3.13-slim-bookworm AS stock-trader-prod
 
@@ -58,6 +55,7 @@ USER app
 
 #### TESTING IMAGE. ####
 FROM stock-trader-prod AS stock-trader-tests
+COPY --chown=app:app --from=stock-trader-test-build /opt/app/.venv /opt/app/.venv
 COPY --chown=app:app cov.ini cov.ini
 COPY --chown=app:app mypy.ini mypy.ini
 COPY --chown=app:app pyproject.toml pyproject.toml

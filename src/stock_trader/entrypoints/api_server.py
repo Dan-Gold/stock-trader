@@ -8,6 +8,7 @@ from fastapi import FastAPI
 
 from stock_trader.api.routes.backtest_router import router as backtest_router
 from stock_trader.entrypoints.config import StockTraderConfig, get_config
+from stock_trader.infrastructure.redis_client import RedisClient
 from stock_trader.logging import setup_logging
 
 settings: StockTraderConfig = get_config()
@@ -27,10 +28,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     setup_logging()
     logger.info("Stock Trader API starting up...")
 
+    # Initialize Redis connection
+    redis = RedisClient(
+        host=settings.redis_host,
+        port=settings.redis_port,
+        db=settings.redis_db,
+    )
+    await redis.connect()
+    app.state.redis = redis
+
     yield
 
     # Shutdown
     logger.info("Stock Trader API shutting down...")
+    await redis.close()
 
 
 server = FastAPI(title="Stock Trader API", lifespan=lifespan)

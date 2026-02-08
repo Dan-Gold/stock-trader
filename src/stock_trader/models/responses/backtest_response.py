@@ -15,7 +15,7 @@ class BacktestResponse(BaseModel):
     status: BacktestStatusEnum
     strategy_name: str
     symbols: list[str]
-    parameters: dict
+    parameters: dict[str, str | int | float | bool]
     error: str | None = None
     create_time: datetime | None = None
     start_time: datetime | None = None

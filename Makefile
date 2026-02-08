@@ -54,6 +54,21 @@ stock-trader-migrate: stock-trader-build ## Run database alembic migrations
 stock-trader-up: stock-trader-build ## Start stock-trader service
 	$(DOCKER_COMPOSE_COMMAND) up -d stock_trader_api
 
+
+# ----------------------------
+# Stock Trader Tests
+# ----------------------------
+
+.PHONY: stock-trader-tests-build
+stock-trader-tests-build: ## Build stock-trader test image
+	$(DOCKER_COMPOSE_COMMAND) build stock_trader_tests
+
+
+.PHONY: stock-trader-mypy
+stock-trader-mypy: stock-trader-tests-build ## Run mypy type checks
+	$(DOCKER_COMPOSE_COMMAND) run --rm stock_trader_tests mypy --config mypy.ini -p stock_trader -p tests
+
+
 # ----------------------------
 # Redis (delegation only)
 # ----------------------------

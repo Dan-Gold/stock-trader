@@ -60,7 +60,7 @@ stock-trader-up: stock-trader-build ## Start stock-trader service
 # ----------------------------
 
 .PHONY: stock-trader-tests-build
-stock-trader-tests-build: ## Build stock-trader test image
+stock-trader-tests-build: setup-docker-network ## Build stock-trader test image
 	$(DOCKER_COMPOSE_COMMAND) build stock_trader_tests
 
 

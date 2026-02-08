@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from stock_trader.db.models.backtest_jobs import BacktestJobTableSchema
 from stock_trader.models.backtest_create_request import BacktestCreateRequest
-from stock_trader.models.exceptions import JobNotFoundException
+from stock_trader.models.exceptions import JobNotFoundError
 from stock_trader.models.shared_enums import BacktestStatusEnum
 
 # TODO: Implement domain model to convert DB models to?
@@ -52,7 +52,7 @@ class BacktestRepository:
             result = job_query.scalar_one_or_none()
 
         if not result:
-            raise JobNotFoundException(f"Backtest job with ID {job_id} not found")
+            raise JobNotFoundError(f"Backtest job with ID {job_id} not found")
 
         return cast(BacktestJobTableSchema, result)
 

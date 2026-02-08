@@ -27,7 +27,8 @@ router = APIRouter(prefix="/backtests", tags=["backtests"])
     summary="Create a new backtest job",
 )
 async def create_backtest(
-    request: BacktestCreateRequest, backtest_service: BacktestService = Depends(get_backtest_service)  # noqa: B008
+    request: BacktestCreateRequest,
+    backtest_service: BacktestService = Depends(get_backtest_service),  # noqa: B008
 ) -> BacktestCreateResponse:
     """Create a new backtest job.
 

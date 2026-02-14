@@ -9,15 +9,10 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.13"
 matplotlib = "3.9.2"
-pandas = "2.2.3"
-pandas-stubs = "2.2.3.241126"
-# pandas-ta = "^0.3.14b0"
-numpy = "2.1.3"
+pandas = "2.3.3"
+pandas-ta = "^0.4.71b0"
 requests = "2.32.3"
-types-requests = "2.32.0.20241016"
 python-dotenv = "1.0.1"
-# ta-lib = "^0.5.2"
-finta = "^1.3"
 alembic = "1.18.0"
 sqlalchemy = "2.0.45"
 SQLAlchemy-Utils = "0.42.1"
@@ -27,11 +22,14 @@ fastapi = "0.128.0"
 pydantic = "2.12.5"
 pydantic-settings = "2.12.0"
 uvicorn = "0.40.0"
-redis = "7.1.0"
+redis = "6.2.0"
+celery = {version = "5.6.2", extras = ["redis"]}
 
 [tool.poetry.group.test.dependencies]
 mypy = "1.19.1"
 ruff = "0.14.10"
+types-requests = "2.32.0.20241016"
+pandas-stubs = "2.2.3.241126"
 
 [tool.poetry.group.dev.dependencies]
 debugpy = "1.8.11"

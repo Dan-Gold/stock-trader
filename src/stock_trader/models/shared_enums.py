@@ -6,7 +6,7 @@ from enum import StrEnum
 class BacktestStatusEnum(StrEnum):
     """Enumeration for backtest job statuses."""
 
-    PENDING = "PENDING"
+    CREATED = "CREATED"
     RUNNING = "RUNNING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"

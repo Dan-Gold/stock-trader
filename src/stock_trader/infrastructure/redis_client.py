@@ -182,3 +182,76 @@ class RedisClient:
         """
         result = await self.client.exists(key)
         return result > 0
+
+
+class DisabledRedisClient:
+    """Disabled Redis client that raises on any operation."""
+
+    def __init__(
+        self,
+        host: str = "redis",
+        port: int = 6379,
+        db: int = 0,
+        decode_responses: bool = True,
+    ) -> None:
+        """Initialize the Redis client configuration.
+
+        Args:
+            host: Redis server hostname.
+            port: Redis server port.
+            db: Redis database number.
+            decode_responses: Whether to decode byte responses to strings.
+        """
+        self.host = host
+        self.port = port
+        self.db = db
+        self.decode_responses = decode_responses
+        self._client: Redis | None = None
+
+    def get_redis_url(self) -> str:
+        """Get the Redis connection URL."""
+        return f"redis://{self.host}:{self.port}/{self.db}"
+
+    async def connect(self) -> None:
+        """Establish connection to Redis."""
+        pass
+
+    async def close(self) -> None:
+        """Close the Redis connection."""
+        pass
+
+    # =========================================================================
+    # Queue Operations
+    # =========================================================================
+
+    async def enqueue(self, queue: str, value: str) -> None:
+        """Add an item to the left of a queue (LPUSH)."""
+        pass
+
+    async def dequeue(self, queue: str, timeout: int = 0) -> str | None:
+        """Pop an item from the right of a queue (BRPOP - blocking)."""
+        pass
+
+    async def queue_length(self, queue: str) -> int:
+        """Get the number of items in a queue."""
+        return 0
+
+    # =========================================================================
+    # Cache Operations
+    # =========================================================================
+
+    async def get(self, key: str) -> str | None:
+        """Get a cached value by key."""
+        return None
+
+    async def set(self, key: str, value: str, ttl: int = 3600) -> None:
+        """Set a cached value with optional TTL."""
+        pass
+
+    async def delete(self, key: str) -> bool:
+        """Delete a key from cache."""
+        return True
+
+    async def exists(self, key: str) -> bool:
+        """Check if a key exists in cache."""
+        return False

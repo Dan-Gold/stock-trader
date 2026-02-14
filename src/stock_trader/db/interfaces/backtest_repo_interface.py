@@ -34,6 +34,24 @@ class IBacktestRepoInterface(Protocol):
         """
         ...
 
+    async def update_job_status(
+        self,
+        job_id: UUID,
+        status: BacktestStatusEnum,
+        error: str | None = None,
+    ) -> BacktestJobTableSchema:
+        """Update a backtest job's status.
+
+        Args:
+            job_id: The UUID of the backtest job.
+            status: The new status.
+            error: Optional error message (for FAILED status).
+
+        Returns:
+            The updated backtest job record.
+        """
+        ...
+
     async def list_backtest_jobs(
         self,
         status_filter: BacktestStatusEnum | None = None,

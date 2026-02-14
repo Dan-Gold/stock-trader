@@ -52,7 +52,6 @@ class BacktestJobTableSchema(DatabaseModelBase):
             A database representation to create the backtest job.
         """
         return cls(
-            status=BacktestStatusEnum.PENDING,
             strategy_name=backtest_request.strategy_name,
             symbols=backtest_request.symbols,
             parameters=backtest_request.parameters,

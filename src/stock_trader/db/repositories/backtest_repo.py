@@ -7,6 +7,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from stock_trader.core.utils import get_utc_now
 from stock_trader.db.models.backtest_jobs import BacktestJobTableSchema
 from stock_trader.models.backtest_create_request import BacktestCreateRequest
 from stock_trader.models.exceptions import JobNotFoundError
@@ -32,6 +33,7 @@ class BacktestRepository:
         """
         async with self.database_session() as session:
             backtest_db = BacktestJobTableSchema.from_request(backtest_request=backtest_request)
+            backtest_db.status = BacktestStatusEnum.CREATED
             session.add(backtest_db)
             await session.commit()
             await session.refresh(backtest_db)
@@ -55,6 +57,45 @@ class BacktestRepository:
             raise JobNotFoundError(f"Backtest job with ID {job_id} not found")
 
         return cast(BacktestJobTableSchema, result)
+
+    async def update_job_status(
+        self,
+        job_id: UUID,
+        status: BacktestStatusEnum,
+        error: str | None = None,
+    ) -> BacktestJobTableSchema:
+        """Update a backtest job's status and timestamps.
+
+        Args:
+            job_id: The UUID of the backtest job.
+            status: The new status.
+            error: Optional error message (for FAILED status).
+
+        Returns:
+            The updated backtest job record.
+
+        Raises:
+            JobNotFoundError: If job not found.
+        """
+        async with self.database_session() as session:
+            job_query = await session.execute(select(BacktestJobTableSchema).where(BacktestJobTableSchema.uuid == job_id))
+            job = job_query.scalar_one_or_none()
+
+            if not job:
+                raise JobNotFoundError(f"Backtest job with ID {job_id} not found")
+
+            job.status = status
+            job.error = error
+
+            now = get_utc_now()
+            if status == BacktestStatusEnum.RUNNING:
+                job.start_time = now
+            elif status in (BacktestStatusEnum.COMPLETED, BacktestStatusEnum.FAILED):
+                job.end_time = now
+
+            await session.commit()
+            await session.refresh(job)
+            return job
 
     async def list_backtest_jobs(
         self,

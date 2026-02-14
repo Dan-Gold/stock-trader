@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 
+from kombu import Exchange, Queue
 from pydantic_settings import BaseSettings
 
 
@@ -23,6 +24,16 @@ class StockTraderConfig(BaseSettings):
     redis_port: int
     redis_db: int
     redis_ttl: int  # in seconds
+
+    # Celery Config
+    celery_broker_redis_db: int
+    celery_backend_redis_db: int
+    celery_task_result_ttl: int  # in seconds
+    task_queues: tuple = (Queue("backtest_queue", Exchange("backtest"), routing_key="backtest.#"),)
+
+    task_routes: dict = {
+        "stock_trader.worker.tasks.backtest_task": {"queue": "backtest_queue", "routing_key": "backtest.task"},
+    }
 
 
 @lru_cache

@@ -3,9 +3,11 @@
 from typing import Sequence
 from uuid import UUID
 
+from celery import chord
+
+from stock_trader.core.backtest import finalize_backtest_job, run_backtest
 from stock_trader.db.interfaces.backtest_repo_interface import IBacktestRepoInterface
 from stock_trader.db.models.backtest_jobs import BacktestJobTableSchema
-from stock_trader.infrastructure.redis_client import IRedisClient
 from stock_trader.models.backtest_create_request import BacktestCreateRequest
 from stock_trader.models.shared_enums import BacktestStatusEnum
 
@@ -13,10 +15,9 @@ from stock_trader.models.shared_enums import BacktestStatusEnum
 class BacktestService:
     """Service layer for backtest operations."""
 
-    def __init__(self, backtest_repository: IBacktestRepoInterface, redis_client: IRedisClient) -> None:
+    def __init__(self, backtest_repository: IBacktestRepoInterface) -> None:
         """Initialize the BacktestService."""
         self.backtest_repository = backtest_repository
-        self.redis_client = redis_client
 
     async def create_backtest_job(self, backtest_request: BacktestCreateRequest) -> BacktestJobTableSchema:
         """Create a new backtest job.
@@ -44,13 +45,28 @@ class BacktestService:
         """
         return await self.backtest_repository.get_backtest_job(job_id=job_id)
 
-    async def enqueue_backtest_job(self, job_id: UUID) -> None:
-        """Enqueue a backtest job for processing.
+    async def dispatch_backtest_job(self, job_id: UUID) -> None:
+        """Dispatch a backtest job to celery for processing.
+
+        Creates one Celery task per symbol in the backtest job. A chord callback runs after
+        all of the symbol tasks are complete to update the parent job status.
 
         Args:
-            job_id: The UUID of the backtest job to enqueue.
+            job_id: The UUID of the backtest job to dispatch.
         """
-        await self.redis_client.enqueue(queue="backtest_jobs", value=str(job_id))
+        job = await self.backtest_repository.get_backtest_job(job_id=job_id)
+
+        # Update job status to running
+        await self.backtest_repository.update_job_status(
+            job_id=job_id,
+            status=BacktestStatusEnum.RUNNING,
+        )
+
+        # Run one task per symbol
+        task_group = [run_backtest.s(str(job_id), symbol) for symbol in job.symbols]
+        callback = finalize_backtest_job.s(str(job_id))
+
+        chord(task_group)(callback)
 
     async def list_backtest_jobs(
         self,

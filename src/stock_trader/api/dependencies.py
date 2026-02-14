@@ -32,11 +32,10 @@ def get_redis_client(request: Request) -> IRedisClient:
 
 def get_backtest_service(
     backtest_repo: IBacktestRepoInterface = Depends(get_backtest_repository),  # noqa: B008
-    redis_client: IRedisClient = Depends(get_redis_client),  # noqa: B008
 ) -> BacktestService:
     """Get the backtest service dependency.
 
     Returns:
         The backtest service.
     """
-    return BacktestService(backtest_repository=backtest_repo, redis_client=redis_client)
+    return BacktestService(backtest_repository=backtest_repo)

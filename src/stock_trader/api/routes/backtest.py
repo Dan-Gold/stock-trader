@@ -77,9 +77,9 @@ async def get_backtest(job_id: UUID, backtest_service: BacktestService = Depends
     )
 
 
-@router.put("/{job_id}/enqueue", summary="Enqueue backtest job")
-async def enqueue_backtest(job_id: UUID, backtest_service: BacktestService = Depends(get_backtest_service)) -> None:  # noqa: B008
-    """Enqueue a backtest job for processing.
+@router.put("/{job_id}/run", summary="Dispatch backtest job")
+async def dispatch_backtest(job_id: UUID, backtest_service: BacktestService = Depends(get_backtest_service)) -> None:  # noqa: B008
+    """Dispatch a backtest job to celery for processing.
 
     Args:
         job_id: The UUID of the backtest job.
@@ -91,7 +91,7 @@ async def enqueue_backtest(job_id: UUID, backtest_service: BacktestService = Dep
     Raises:
         HTTPException: 404 if job not found, 400 if job is not in PENDING status.
     """
-    await backtest_service.enqueue_backtest_job(job_id=job_id)
+    await backtest_service.dispatch_backtest_job(job_id=job_id)
 
 
 @router.get(

@@ -3,9 +3,9 @@
 from celery import Celery
 from celery.signals import after_setup_logger, after_setup_task_logger
 
+from stock_trader.core.backtest import finalize_backtest_job, run_backtest  # noqa: F401, register tasks with Celery
 from stock_trader.entrypoints.config import get_config
 from stock_trader.logging import setup_logging
-from stock_trader.core.backtest import run_backtest, finalize_backtest_job  # noqa: F401, register tasks with Celery
 
 config = get_config()
 

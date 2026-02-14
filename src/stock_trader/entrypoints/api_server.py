@@ -6,12 +6,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+import stock_trader.worker.celery_app  # noqa: F401, configure Celery broker for task dispatch
 from stock_trader.api.exception_handlers import add_exception_handlers
 from stock_trader.api.routes.backtest_router import router as backtest_router
 from stock_trader.entrypoints.config import StockTraderConfig, get_config
 from stock_trader.infrastructure.redis_client import RedisClient
 from stock_trader.logging import setup_logging
-import stock_trader.worker.celery_app  # noqa: F401, configure Celery broker for task dispatch
 
 settings: StockTraderConfig = get_config()
 logger = logging.getLogger(__name__)

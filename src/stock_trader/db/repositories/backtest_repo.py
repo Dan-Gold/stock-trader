@@ -53,10 +53,10 @@ class BacktestRepository:
 
             result = job_query.scalar_one_or_none()
 
-        if not result:
-            raise JobNotFoundError(f"Backtest job with ID {job_id} not found")
+            if not result:
+                raise JobNotFoundError(f"Backtest job with ID {job_id} not found")
 
-        return cast(BacktestJobTableSchema, result)
+            return cast(BacktestJobTableSchema, result)
 
     async def update_job_status(
         self,
@@ -113,4 +113,4 @@ class BacktestRepository:
             query = query.offset(offset).limit(limit)
             result = await session.execute(query)
 
-        return result.scalars().all()
+            return result.scalars().all()

@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
     max_retries=1,
     default_retry_delay=10,
 )
-def run_backtest(job_id: str, symbol: str) -> None:
+def run_backtest(job_id: str, symbol: str) -> dict:
     """Run a backtest for a single symbol within a job.
 
     This task is dispatched as part of a Celery chord — one task per symbol.
@@ -36,7 +36,7 @@ def run_backtest(job_id: str, symbol: str) -> None:
         symbol: The stock ticker symbol to backtest.
 
     Returns:
-        A dict containing either the backtest results or an error.
+        A dict containing either the backtest success or an error.
     """
     repo = BacktestRepositorySync(database_session_sync)
     job_uuid = UUID(job_id)
@@ -85,6 +85,9 @@ def run_backtest(job_id: str, symbol: str) -> None:
 
     except Exception as exc:
         logger.error(f"Job {job_id}: Backtest failed for {symbol}: {exc}")
+        return {"symbol": symbol, "error": str(exc)}
+
+    return {"symbol": symbol, "status": "completed"}
 
 
 @shared_task()

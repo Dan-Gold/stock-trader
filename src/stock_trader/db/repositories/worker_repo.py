@@ -40,10 +40,10 @@ class BacktestRepositorySync:
             result = session.execute(select(BacktestJobTableSchema).where(BacktestJobTableSchema.uuid == job_id))
             job = result.scalar_one_or_none()
 
-        if not job:
-            raise JobNotFoundError(f"Backtest job with ID {job_id} not found")
+            if not job:
+                raise JobNotFoundError(f"Backtest job with ID {job_id} not found")
 
-        return job
+            return job
 
     def update_job_status(
         self,

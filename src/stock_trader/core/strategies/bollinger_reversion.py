@@ -46,7 +46,7 @@ class BollingerReversionStrategy:
         df = df.copy()
 
         # --- Step 1: Calculate Bollinger Bands via pandas-ta ---
-        bbands = ta.bbands(df["Close"], length=self.length, lower_std=self.std_dev, upper_std=self.std_dev)
+        bbands = ta.bbands(df["close"], length=self.length, lower_std=self.std_dev, upper_std=self.std_dev)
         if bbands is None:
             raise ValueError(f"pandas-ta returned None for bbands. Check that df has at least {self.length} rows.")
 
@@ -67,7 +67,7 @@ class BollingerReversionStrategy:
 
         for i in range(self.length, len(df)):
             row = df.iloc[i]
-            close = row["Close"]
+            close = row["close"]
             timestamp = df.index[i]
 
             if not in_position:
@@ -102,7 +102,7 @@ class BollingerReversionStrategy:
                 Trade(
                     timestamp=str(df.index[-1]),
                     signal=SignalType.SELL,
-                    price=last_row["Close"],
+                    price=last_row["close"],
                     reason="End of data, forced exit",
                 )
             )

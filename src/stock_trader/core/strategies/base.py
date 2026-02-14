@@ -61,7 +61,7 @@ class BacktestResult(BaseModel):
 
     def to_raw(self) -> dict:
         """Build the raw JSONB payload for BacktestResultTableSchema.raw."""
-        columns_to_store = ["Close", *self.indicator_columns]
+        columns_to_store = ["close", *self.indicator_columns]
         chart_df = self.chart_data[columns_to_store].dropna()
 
         raw = chart_df.to_dict(orient="split")

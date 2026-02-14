@@ -5,6 +5,7 @@ from celery.signals import after_setup_logger, after_setup_task_logger
 
 from stock_trader.entrypoints.config import get_config
 from stock_trader.logging import setup_logging
+from stock_trader.core.backtest import run_backtest, finalize_backtest_job  # noqa: F401, register tasks with Celery
 
 config = get_config()
 
@@ -29,10 +30,6 @@ celery_app.conf.update(
     task_queues=config.task_queues,
     task_routes=config.task_routes,
 )
-
-# Auto-discover tasks in the worker package
-# NOTE: Consider specifying tasks modules explicitly
-celery_app.autodiscover_tasks(["stock_trader.worker"])
 
 
 @after_setup_task_logger.connect

@@ -38,7 +38,7 @@ stock-trader-build: setup-docker-network ## Build stock-trader base image
 
 
 .PHONY: stock-trader-generate-migration
-stock-trader-generate-migration: stock-trader-build stock-trader-migrate
+stock-trader-generate-migration: stock-trader-build stock-trader-migrate ## Generate a new alembic migration based on model changes
 	$(DOCKER_COMPOSE_COMMAND) run --name temp_migration --rm=false stock_trader_db_migration \
 		alembic -c /app/stock_trader/db/migrations/alembic.ini revision --autogenerate -m "$(MSG)"
 	docker cp temp_migration:/app/stock_trader/db/migrations/versions/. ./src/stock_trader/db/migrations/versions/

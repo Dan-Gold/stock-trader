@@ -32,7 +32,8 @@ class StockTraderConfig(BaseSettings):
     task_queues: tuple = (Queue("backtest_queue", Exchange("backtest"), routing_key="backtest.#"),)
 
     task_routes: dict = {
-        "stock_trader.worker.tasks.backtest_task": {"queue": "backtest_queue", "routing_key": "backtest.task"},
+        "run_backtest": {"queue": "backtest_queue", "routing_key": "backtest.task"},
+        "stock_trader.core.backtest.finalize_backtest_job": {"queue": "backtest_queue", "routing_key": "backtest.task"},
     }
 
 

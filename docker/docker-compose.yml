@@ -43,7 +43,7 @@ services:
   # Stock Trader Worker (Celery)
   stock_trader_worker:
     container_name: stock_trader_worker
-    command: python -m celery -A stock_trader.worker.main:celery_app worker -Q backtest_queue
+    command: python -m celery -A stock_trader.worker.celery_app:celery_app worker -Q backtest_queue
     depends_on:
       stock_trader_db_init:
         condition: service_completed_successfully
@@ -56,7 +56,7 @@ services:
   # Flower for Celery monitoring
   stock_trader_flower:
     container_name: stock_trader_flower
-    command: python -m celery -A stock_trader.worker.main:celery_app flower --port=5555
+    command: python -m celery -A stock_trader.worker.celery_app:celery_app flower --port=5555
     depends_on:
       stock_trader_db_init:
         condition: service_completed_successfully

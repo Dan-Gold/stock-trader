@@ -1,8 +1,8 @@
 """Create initial tables.
 
-Revision ID: 0a8496d67f2d
+Revision ID: bcdd27605b96
 Revises: 0d583eb2b2f7
-Created Date: 2026-01-19 21:53:32.461356
+Created Date: 2026-02-14 20:00:28.921504
 
 """
 
@@ -13,7 +13,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # Revision identifiers
-revision: str = "0a8496d67f2d"
+revision: str = "bcdd27605b96"
 down_revision: str | Sequence[str] | None = "0d583eb2b2f7"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -28,7 +28,7 @@ def upgrade() -> None:
         sa.Column(
             "status",
             sa.Enum(
-                "PENDING",
+                "CREATED",
                 "RUNNING",
                 "COMPLETED",
                 "FAILED",
@@ -54,12 +54,12 @@ def upgrade() -> None:
         "backtest_results",
         sa.Column("uuid", sa.UUID(), nullable=False),
         sa.Column("job_id", sa.UUID(), nullable=False),
+        sa.Column("symbol", sa.String(length=10), nullable=False),
         sa.Column("summary", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("raw", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("create_time", postgresql.TIMESTAMP(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.ForeignKeyConstraint(["job_id"], ["stock_trader.backtest_jobs.uuid"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("uuid"),
-        sa.UniqueConstraint("job_id", name="uq_backtest_results_job_id"),
         schema="stock_trader",
     )
     op.create_table(

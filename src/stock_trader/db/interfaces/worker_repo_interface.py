@@ -10,13 +10,14 @@ from stock_trader.models.shared_enums import BacktestStatusEnum
 class IBacktestRepositorySync(Protocol):
     """Sync repository for Celery worker database access."""
 
-    def post_job_result(self, job_id: UUID, metric_data: dict, result_data: dict) -> None:
-        """Create the result data of a completed backtest job.
+    def save_job_result(self, job_id: UUID, symbol: str, summary: dict, raw: dict) -> None:
+        """Create and save the result data of a completed backtest job.
 
         Args:
             job_id: The UUID of the backtest job.
-            metric_data: The metric data to store.
-            result_data: The result data to store.
+            symbol: The stock ticker symbol.
+            summary: The summary data to store.
+            raw: The raw data to store.
         """
         ...
 

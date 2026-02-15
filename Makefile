@@ -44,6 +44,7 @@ dev-up-all: dev-up redis-ui-up ## Start all services + Flower + RedisInsight UIs
 dev-down: ## Stop all services
 	$(DOCKER_COMPOSE_COMMAND) down
 	$(MAKE) redis-down
+	$(MAKE) redis-ui-down
 	$(MAKE) postgres-down
 
 .PHONY: dev-status

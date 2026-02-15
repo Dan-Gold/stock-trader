@@ -54,8 +54,8 @@ services:
       service: stock_trader_base
 
   # Flower for Celery monitoring
-  stock_trader_flower:
-    container_name: stock_trader_flower
+  flower:
+    container_name: flower
     command: python -m celery -A stock_trader.worker.celery_app:celery_app flower --port=5555
     depends_on:
       stock_trader_db_init:

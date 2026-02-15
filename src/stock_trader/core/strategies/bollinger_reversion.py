@@ -39,19 +39,24 @@ class BollingerReversionStrategy:
         self.initial_capital = initial_capital
 
         # Store parameters in a dict for easy access in results
-        self._params = {"length": self.length, "std_dev": self.std_dev, "exit_at": self.exit_at}
+        self._params = {
+            "initial_capital": self.initial_capital,
+            "length": self.length,
+            "std_dev": self.std_dev,
+            "exit_at": self.exit_at,
+        }
 
     def run(self, df: pd.DataFrame) -> BacktestResult:
         """Run Bollinger Band mean reversion against price data."""
         df = df.copy()
 
         # --- Step 1: Calculate Bollinger Bands via pandas-ta ---
-        bbands = ta.bbands(df["close"], length=self.length, lower_std=self.std_dev, upper_std=self.std_dev)
+        bbands = ta.bbands(df["close"], length=self.length, std=self.std_dev)
         if bbands is None:
             raise ValueError(f"pandas-ta returned None for bbands. Check that df has at least {self.length} rows.")
 
-        # pandas-ta names columns like: BBL_20_2.0, BBM_20_2.0, BBU_20_2.0
-        suffix = f"{self.length}_{self.std_dev}"
+        # pandas-ta names columns like: BBL_20_2.0_2.0, BBM_20_2.0_2.0, BBU_20_2.0_2.0
+        suffix = f"{self.length}_{self.std_dev}_{self.std_dev}"
         df["bb_lower"] = bbands[f"BBL_{suffix}"]
         df["bb_middle"] = bbands[f"BBM_{suffix}"]
         df["bb_upper"] = bbands[f"BBU_{suffix}"]

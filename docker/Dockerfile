@@ -51,6 +51,9 @@ COPY --chown=app:app --from=stock-trader-build $APP_VIRTUAL_ENV $APP_VIRTUAL_ENV
 COPY --chown=app:app src/stock_trader/ ./stock_trader
 COPY --chown=app:app assets/ ./assets
 
+# This is temporary
+COPY --chown=app:app data/ ./data
+
 USER app
 
 #### TESTING IMAGE. ####

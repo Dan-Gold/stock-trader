@@ -1,6 +1,7 @@
 """Tasks for running backtest jobs."""
 
 import logging
+import traceback
 from pathlib import Path
 from uuid import UUID
 
@@ -85,6 +86,7 @@ def run_backtest(job_id: str, symbol: str) -> dict:
 
     except Exception as exc:
         logger.error(f"Job {job_id}: Backtest failed for {symbol}: {exc}")
+        logger.error(traceback.format_exc())
         return {"symbol": symbol, "error": str(exc)}
 
     return {"symbol": symbol, "status": "completed"}

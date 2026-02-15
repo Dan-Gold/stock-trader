@@ -33,6 +33,7 @@ class BacktestMetrics(BaseModel):
     num_trades: int = Field(default=0, ge=0)
     win_rate: float = Field(default=0.0, ge=0, le=100)
     max_drawdown_pct: float = Field(default=0.0, ge=0)
+    ending_capital: float = Field(default=0.0, ge=0)
 
 
 class BacktestResult(BaseModel):
@@ -109,4 +110,5 @@ def calculate_metrics(trades: list[Trade], initial_capital: float) -> BacktestMe
         num_trades=len(completed_trades),
         win_rate=round(wins / len(completed_trades) * 100, 2),
         max_drawdown_pct=round(max_drawdown * 100, 2),
+        ending_capital=round(equity, 2),
     )

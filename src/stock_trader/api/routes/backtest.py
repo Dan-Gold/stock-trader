@@ -48,10 +48,10 @@ async def create_backtest(
 @router.get(
     "/{job_id}",
     response_model=BacktestResponse,
-    summary="Get backtest job status",
+    summary="Get backtest job details",
 )
 async def get_backtest(job_id: UUID, backtest_service: BacktestService = Depends(get_backtest_service)) -> BacktestResponse:  # noqa: B008
-    """Get the current status and details of a backtest job.
+    """Get the current details of a backtest job.
 
     Args:
         job_id: The UUID of the backtest job.

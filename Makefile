@@ -32,6 +32,24 @@ setup-pgadmin-volume: ## Create pgadmin-data volume if it doesn't exist
 # Stock Trader Services
 # ----------------------------
 
+.PHONY: dev-up
+dev-up: postgres-up redis-up stock-trader-build stock-trader-migrate ## Start all services (infra + API + worker)
+	$(DOCKER_COMPOSE_COMMAND) up -d stock_trader_api stock_trader_worker
+
+.PHONY: dev-up-all
+dev-up-all: dev-up redis-ui-up ## Start all services + Flower + RedisInsight UIs
+	$(DOCKER_COMPOSE_COMMAND) up -d flower
+
+.PHONY: dev-down
+dev-down: ## Stop all services
+	$(DOCKER_COMPOSE_COMMAND) down
+	$(MAKE) redis-down
+	$(MAKE) postgres-down
+
+.PHONY: dev-status
+dev-status: ## Show status of all running containers
+	@docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
 .PHONY: stock-trader-build
 stock-trader-build: setup-docker-network ## Build stock-trader base image
 	$(DOCKER_COMPOSE_COMMAND) build stock_trader_base
@@ -53,6 +71,35 @@ stock-trader-migrate: stock-trader-build ## Run database alembic migrations
 .PHONY: stock-trader-up
 stock-trader-up: stock-trader-build ## Start stock-trader service
 	$(DOCKER_COMPOSE_COMMAND) up -d stock_trader_api
+
+
+# Stock trader worker
+
+.PHONY: stock-trader-worker-up
+stock-trader-worker-up: stock-trader-build ## Start celery worker
+	$(DOCKER_COMPOSE_COMMAND) up -d stock_trader_worker
+
+
+.PHONY: stock-trader-worker-down
+stock-trader-worker-down: ## Stop celery worker
+	$(DOCKER_COMPOSE_COMMAND) stop stock_trader_worker
+
+
+.PHONY: stock-trader-worker-logs
+stock-trader-worker-logs: ## Tail celery worker logs
+	$(DOCKER_COMPOSE_COMMAND) logs -f stock_trader_worker
+
+
+# Flower celery worker monitor UI
+
+.PHONY: flower-up
+flower-up: stock-trader-build ## Start flower monitoring UI (port 5555)
+	$(DOCKER_COMPOSE_COMMAND) up -d flower
+
+
+.PHONY: flower-down
+flower-down: ## Stop flower monitoring UI
+	$(DOCKER_COMPOSE_COMMAND) stop flower
 
 
 # ----------------------------

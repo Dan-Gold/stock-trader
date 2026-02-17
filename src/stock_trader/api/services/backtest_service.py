@@ -64,7 +64,7 @@ class BacktestService:
         )
 
         # Chain: fetch market data → chord of backtest tasks per symbol
-        task_group = [run_backtest.s(str(job_id), symbol) for symbol in job.symbols]
+        task_group = [run_backtest.si(str(job_id), symbol) for symbol in job.symbols]
         callback = finalize_backtest_job.s(str(job_id))
 
         chain(

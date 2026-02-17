@@ -3,7 +3,7 @@
 import logging
 from uuid import UUID
 
-from celery import shared_task
+from celery import Task, shared_task
 
 from stock_trader.core.market_data.market_data_service import MarketDataService
 from stock_trader.core.market_data.providers.market_data_provider_interface import ProviderError
@@ -13,9 +13,25 @@ from stock_trader.db.db_engine import database_session_sync
 from stock_trader.db.repositories.market_data_repo import MarketDataRepositorySync
 from stock_trader.db.repositories.worker_repo import BacktestRepositorySync
 from stock_trader.entrypoints.config import get_config
-from stock_trader.models.shared_enums import IntervalEnum
+from stock_trader.models.shared_enums import BacktestStatusEnum, IntervalEnum
 
 logger = logging.getLogger(__name__)
+
+
+def _on_fetch_failure(self: Task, exc: Exception, task_id: str, args: tuple, kwargs: dict, einfo: object) -> None:
+    """Mark the backtest job as FAILED when fetch exhausts all retries."""
+    job_id = args[0] if args else kwargs.get("job_id")
+    if not job_id:
+        return
+
+    logger.error("Job %s: fetch_market_data failed permanently: %s", job_id, exc)
+
+    repo = BacktestRepositorySync(database_session_sync)
+    repo.update_job_status(
+        UUID(job_id),
+        BacktestStatusEnum.FAILED,
+        error=f"Market data fetch failed: {exc}",
+    )
 
 
 @shared_task(
@@ -23,6 +39,7 @@ logger = logging.getLogger(__name__)
     max_retries=3,
     default_retry_delay=65,
     autoretry_for=(ProviderError,),
+    on_failure=_on_fetch_failure,
 )
 def fetch_market_data(job_id: str) -> str:
     """Fetch and store market data for all symbols in a backtest job.

@@ -33,8 +33,8 @@ setup-pgadmin-volume: ## Create pgadmin-data volume if it doesn't exist
 # ----------------------------
 
 .PHONY: dev-up
-dev-up: postgres-up redis-up stock-trader-build stock-trader-migrate ## Start all services (infra + API + worker)
-	$(DOCKER_COMPOSE_COMMAND) up -d stock_trader_api stock_trader_worker
+dev-up: postgres-up redis-up stock-trader-build stock-trader-migrate ## Start all services (infra + API + workers)
+	$(DOCKER_COMPOSE_COMMAND) up -d stock_trader_api stock_trader_worker stock_trader_fetch_worker
 
 .PHONY: dev-up-all
 dev-up-all: dev-up redis-ui-up ## Start all services + Flower + RedisInsight UIs
@@ -89,6 +89,23 @@ stock-trader-worker-down: ## Stop celery worker
 .PHONY: stock-trader-worker-logs
 stock-trader-worker-logs: ## Tail celery worker logs
 	$(DOCKER_COMPOSE_COMMAND) logs -f stock_trader_worker
+
+
+# Fetch worker (I/O-bound, gevent pool)
+
+.PHONY: stock-trader-fetch-worker-up
+stock-trader-fetch-worker-up: stock-trader-build ## Start celery fetch worker
+	$(DOCKER_COMPOSE_COMMAND) up -d stock_trader_fetch_worker
+
+
+.PHONY: stock-trader-fetch-worker-down
+stock-trader-fetch-worker-down: ## Stop celery fetch worker
+	$(DOCKER_COMPOSE_COMMAND) stop stock_trader_fetch_worker
+
+
+.PHONY: stock-trader-fetch-worker-logs
+stock-trader-fetch-worker-logs: ## Tail celery fetch worker logs
+	$(DOCKER_COMPOSE_COMMAND) logs -f stock_trader_fetch_worker
 
 
 # Flower celery worker monitor UI

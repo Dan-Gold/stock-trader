@@ -2,7 +2,7 @@
 
 from datetime import date
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class BacktestCreateRequest(BaseModel):
@@ -13,3 +13,10 @@ class BacktestCreateRequest(BaseModel):
     parameters: dict[str, str | int | float | bool] = Field(default_factory=dict, description="Strategy-specific parameters")
     start_date: date = Field(..., description="Start date inclusive, ISO format YYYY-MM-DD")
     end_date: date = Field(..., description="End date inclusive, ISO format YYYY-MM-DD")
+
+    @model_validator(mode="after")
+    def validate_date_range(self) -> "BacktestCreateRequest":
+        """Ensure end_date is not before start_date."""
+        if self.end_date < self.start_date:
+            raise ValueError("end_date cannot be before start_date")
+        return self

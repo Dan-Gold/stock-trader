@@ -2,15 +2,14 @@
 
 import logging
 import traceback
-from pathlib import Path
 from uuid import UUID
 
 from celery import shared_task
 
 from stock_trader.core.interfaces.strategy_interface import IStrategy
 from stock_trader.core.strategies.registry import get_strategy
-from stock_trader.core.utils import load_csv_data
 from stock_trader.db.db_engine import database_session_sync
+from stock_trader.db.repositories.market_data_repo import MarketDataRepositorySync
 from stock_trader.db.repositories.worker_repo import BacktestRepositorySync
 from stock_trader.models.shared_enums import BacktestStatusEnum
 
@@ -39,31 +38,34 @@ def run_backtest(job_id: str, symbol: str) -> dict:
     Returns:
         A dict containing either the backtest success or an error.
     """
-    repo = BacktestRepositorySync(database_session_sync)
+    backtest_repo = BacktestRepositorySync(database_session_sync)
+    market_data_repo = MarketDataRepositorySync(database_session_sync)
     job_uuid = UUID(job_id)
 
     try:
         # ------------------------------------------------------------------
         # Step 1: Pull job details from the database.
         # ------------------------------------------------------------------
-        job = repo.get_backtest_job(job_uuid)
+        job = backtest_repo.get_backtest_job(job_uuid)
         strategy_name = job.strategy_name
         strategy_params = job.parameters or {}
 
         logger.info(f"Job {job_id}: Running '{strategy_name}' on {symbol} with params {strategy_params}")
 
         # ------------------------------------------------------------------
-        # Step 2: Load historical price data from cache or database.
+        # Step 2: Load historical price data from the database.
+        #         Data was fetched by the upstream fetch_market_data task.
         # ------------------------------------------------------------------
-        # TODO: Temporary hardcoded path for
-        # TODO: Replace with dynamic data loading from Redis cache, database, data should be fetched before running backtest
-        # testing, will replace with redis cache/db cache/ grab data from API
-        csv_path = Path("/app/data/PLTR_data_1min_comb.csv")
+        ohlcv = market_data_repo.get_ohlcv_data(
+            symbol=symbol,
+            start_time=job.start_date,
+            end_time=job.end_date,
+        )
 
-        if not csv_path.exists():
-            raise FileNotFoundError(f"No historical data found at {csv_path}")
+        if not ohlcv:
+            raise ValueError(f"No market data found for {symbol} between {job.start_date} and {job.end_date}")
 
-        df = load_csv_data(csv_path)
+        df = ohlcv.to_dataframe()
         logger.info(f"Job {job_id}: Loaded {len(df)} rows of data for {symbol}")
 
         # ------------------------------------------------------------------
@@ -78,7 +80,7 @@ def run_backtest(job_id: str, symbol: str) -> dict:
         # ------------------------------------------------------------------
         # Step 4: Persist results to the database.
         # ------------------------------------------------------------------
-        repo.save_job_result(
+        backtest_repo.save_job_result(
             job_id=job_uuid,
             symbol=symbol,
             summary=results.to_summary(),

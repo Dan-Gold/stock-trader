@@ -58,4 +58,9 @@ class ProviderError(Exception):
 
     def __init__(self, provider: str, message: str) -> None:
         self.provider = provider
+        self.message = message
         super().__init__(f"[{provider}] {message}")
+
+    def __reduce__(self) -> tuple:
+        """Make ProviderError picklable for Celery serialization."""
+        return (self.__class__, (self.provider, self.message))

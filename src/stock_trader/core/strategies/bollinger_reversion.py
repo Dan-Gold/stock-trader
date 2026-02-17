@@ -51,7 +51,7 @@ class BollingerReversionStrategy:
         df = df.copy()
 
         # --- Step 1: Calculate Bollinger Bands via pandas-ta ---
-        bbands = ta.bbands(df["close"], length=self.length, std=self.std_dev)  # Type: ignore
+        bbands = ta.bbands(df["close"], length=self.length, std=self.std_dev)  # type: ignore[arg-type]
         if bbands is None:
             raise ValueError(f"pandas-ta returned None for bbands. Check that df has at least {self.length} rows.")
 

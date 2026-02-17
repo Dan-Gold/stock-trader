@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Iterable
 
+from massive.rest.models import Agg
+
 from stock_trader.core.models.ohlcv_series import OHLCV, OHLCVSeries
 from stock_trader.models.shared_enums import IntervalEnum
 
@@ -34,12 +36,11 @@ def resolve_interval(multiplier: int, timespan: str) -> IntervalEnum:
     return interval
 
 
-def agg_to_ohlcv(agg, symbol: str, interval: IntervalEnum) -> OHLCV:
+def agg_to_ohlcv(agg: Agg, symbol: str, interval: IntervalEnum) -> OHLCV:
     """Convert a single Massive ``Agg`` object to an OHLCV domain model.
 
     Args:
-        agg: A Massive ``Agg`` object with attributes: timestamp, open,
-            high, low, close, volume, vwap, transactions.
+        agg: A Massive ``Agg`` object with attributes: timestamp, open, high, low, close, volume, vwap, transactions.
         symbol: Ticker symbol, e.g. ``"AAPL"``.
         interval: The resolved IntervalEnum value.
     """
@@ -58,7 +59,7 @@ def agg_to_ohlcv(agg, symbol: str, interval: IntervalEnum) -> OHLCV:
 
 
 def aggs_to_ohlcv_series(
-    aggs: Iterable,
+    aggs: Iterable[Agg],
     symbol: str,
     multiplier: int,
     timespan: str,

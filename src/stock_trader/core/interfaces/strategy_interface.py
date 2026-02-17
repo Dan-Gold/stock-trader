@@ -4,10 +4,10 @@ from typing import Protocol
 
 import pandas as pd
 
-from stock_trader.core.strategies.base import BacktestResult
+from stock_trader.core.strategies.models import BacktestResult
 
 
-class Strategy(Protocol):
+class IStrategy(Protocol):
     """Protocol that all strategies must satisfy."""
 
     name: str

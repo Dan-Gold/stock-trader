@@ -3,7 +3,7 @@
 import pandas as pd
 import pandas_ta as ta
 
-from stock_trader.core.strategies.base import BacktestResult, SignalType, Trade, calculate_metrics
+from stock_trader.core.strategies.models import BacktestResult, SignalType, Trade, calculate_metrics
 
 
 class BollingerReversionStrategy:
@@ -51,7 +51,7 @@ class BollingerReversionStrategy:
         df = df.copy()
 
         # --- Step 1: Calculate Bollinger Bands via pandas-ta ---
-        bbands = ta.bbands(df["close"], length=self.length, std=self.std_dev)
+        bbands = ta.bbands(df["close"], length=self.length, std=self.std_dev)  # Type: ignore
         if bbands is None:
             raise ValueError(f"pandas-ta returned None for bbands. Check that df has at least {self.length} rows.")
 

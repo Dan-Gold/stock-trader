@@ -1,9 +1,9 @@
 """Backtest jobs model."""
 
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Index, String, func, types
+from sqlalchemy import Date, Index, String, func, types
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column
@@ -35,6 +35,8 @@ class BacktestJobTableSchema(DatabaseModelBase):
     strategy_name: Mapped[str] = mapped_column(String(50), nullable=False)
     symbols: Mapped[list[str]] = mapped_column(postgresql.JSONB, nullable=False)
     parameters = mapped_column(MutableDict.as_mutable(postgresql.JSONB))
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[date] = mapped_column(Date, nullable=False)
     error: Mapped[str | None] = mapped_column(String(255), nullable=True)
     create_time: Mapped[datetime] = mapped_column(
         postgresql.TIMESTAMP(timezone=True),
@@ -55,4 +57,6 @@ class BacktestJobTableSchema(DatabaseModelBase):
             strategy_name=backtest_request.strategy_name,
             symbols=backtest_request.symbols,
             parameters=backtest_request.parameters,
+            start_date=backtest_request.start_date,
+            end_date=backtest_request.end_date,
         )

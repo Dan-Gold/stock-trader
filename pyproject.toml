@@ -25,6 +25,8 @@ uvicorn = "0.40.0"
 redis = "6.2.0"
 celery = {version = "5.6.2", extras = ["redis"]}
 flower = "^2.0.1"
+gevent = "^25.9.1"
+massive = "^2.2.0"
 
 [tool.poetry.group.test.dependencies]
 mypy = "1.19.1"

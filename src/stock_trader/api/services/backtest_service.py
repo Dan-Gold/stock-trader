@@ -3,9 +3,10 @@
 from typing import Sequence
 from uuid import UUID
 
-from celery import chord
+from celery import chain, chord
 
 from stock_trader.core.backtest import finalize_backtest_job, run_backtest
+from stock_trader.core.market_data.fetch_market_data import fetch_market_data
 from stock_trader.db.interfaces.backtest_repo_interface import IBacktestRepoInterface
 from stock_trader.db.models.backtest_jobs import BacktestJobTableSchema
 from stock_trader.models.backtest_create_request import BacktestCreateRequest
@@ -62,11 +63,14 @@ class BacktestService:
             status=BacktestStatusEnum.RUNNING,
         )
 
-        # Run one task per symbol
+        # Chain: fetch market data → chord of backtest tasks per symbol
         task_group = [run_backtest.s(str(job_id), symbol) for symbol in job.symbols]
         callback = finalize_backtest_job.s(str(job_id))
 
-        chord(task_group)(callback)
+        chain(
+            fetch_market_data.s(str(job_id)),
+            chord(task_group, callback),
+        ).apply_async()
 
     async def list_backtest_jobs(
         self,

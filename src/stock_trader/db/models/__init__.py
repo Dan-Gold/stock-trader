@@ -7,4 +7,4 @@ class DatabaseModelBase(DeclarativeBase):
     pass
 
 
-from . import backtest_jobs, backtest_results, job_events  # noqa: F401, E402
+from . import backtest_jobs, backtest_results, job_events, market_data  # noqa: F401, E402

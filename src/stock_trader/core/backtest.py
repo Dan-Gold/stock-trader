@@ -7,7 +7,7 @@ from uuid import UUID
 
 from celery import shared_task
 
-from stock_trader.core.interfaces.base_interface import Strategy
+from stock_trader.core.interfaces.strategy_interface import IStrategy
 from stock_trader.core.strategies.registry import get_strategy
 from stock_trader.core.utils import load_csv_data
 from stock_trader.db.db_engine import database_session_sync
@@ -53,9 +53,10 @@ def run_backtest(job_id: str, symbol: str) -> dict:
         logger.info(f"Job {job_id}: Running '{strategy_name}' on {symbol} with params {strategy_params}")
 
         # ------------------------------------------------------------------
-        # Step 2: Load historical price data from CSV.
+        # Step 2: Load historical price data from cache or database.
         # ------------------------------------------------------------------
         # TODO: Temporary hardcoded path for
+        # TODO: Replace with dynamic data loading from Redis cache, database, data should be fetched before running backtest
         # testing, will replace with redis cache/db cache/ grab data from API
         csv_path = Path("/app/data/PLTR_data_1min_comb.csv")
 
@@ -69,7 +70,7 @@ def run_backtest(job_id: str, symbol: str) -> dict:
         # Step 3: Run the trading strategy.
         # ------------------------------------------------------------------
         strategy_cls = get_strategy(job.strategy_name)
-        strategy: Strategy = strategy_cls(**strategy_params)
+        strategy: IStrategy = strategy_cls(**strategy_params)
         results = strategy.run(df)
 
         logger.info(f"Job {job_id}: Backtest complete for {symbol} — total return: {results.metrics.total_return_pct:.2f}%")

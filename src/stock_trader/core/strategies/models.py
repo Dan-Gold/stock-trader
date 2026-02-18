@@ -1,5 +1,6 @@
 """Base classes and utilities for trading strategies."""
 
+from datetime import datetime
 from enum import Enum
 
 import pandas as pd
@@ -18,7 +19,7 @@ class Trade(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    timestamp: str
+    timestamp: datetime
     signal: SignalType
     price: float = Field(gt=0)
     reason: str

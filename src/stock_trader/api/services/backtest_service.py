@@ -3,10 +3,7 @@
 from typing import Sequence
 from uuid import UUID
 
-from celery import chain, chord
-
-from stock_trader.core.backtest import finalize_backtest_job, run_backtest
-from stock_trader.core.market_data.fetch_market_data import fetch_market_data
+from stock_trader.api.interfaces.task_dispatcher_interface import ITaskDispatcher
 from stock_trader.db.interfaces.backtest_repo_interface import IBacktestRepoInterface
 from stock_trader.db.models.backtest_jobs import BacktestJobTableSchema
 from stock_trader.models.backtest_create_request import BacktestCreateRequest
@@ -17,9 +14,14 @@ from stock_trader.models.shared_enums import BacktestStatusEnum
 class BacktestService:
     """Service layer for backtest operations."""
 
-    def __init__(self, backtest_repository: IBacktestRepoInterface) -> None:
+    def __init__(
+        self,
+        backtest_repository: IBacktestRepoInterface,
+        task_dispatcher: ITaskDispatcher,
+    ) -> None:
         """Initialize the BacktestService."""
         self.backtest_repository = backtest_repository
+        self.task_dispatcher = task_dispatcher
 
     async def create_backtest_job(self, backtest_request: BacktestCreateRequest) -> BacktestJobTableSchema:
         """Create a new backtest job.
@@ -67,14 +69,11 @@ class BacktestService:
             status=BacktestStatusEnum.RUNNING,
         )
 
-        # Chain: fetch market data → chord of backtest tasks per symbol
-        task_group = [run_backtest.si(str(job_id), symbol) for symbol in job.symbols]
-        callback = finalize_backtest_job.s(str(job_id))
-
-        chain(
-            fetch_market_data.s(str(job_id)),
-            chord(task_group, callback),
-        ).apply_async()
+        # Dispatch to task queue
+        self.task_dispatcher.dispatch_backtest(
+            job_id=str(job_id),
+            symbols=job.symbols,
+        )
 
     async def list_backtest_jobs(
         self,

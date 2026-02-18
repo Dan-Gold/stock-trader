@@ -2,6 +2,7 @@
 
 from celery import Celery
 from celery.signals import after_setup_logger, after_setup_task_logger
+from kombu import Exchange, Queue
 
 from stock_trader.core.backtest import finalize_backtest_job, run_backtest  # noqa: F401, register tasks with Celery
 from stock_trader.core.market_data.fetch_market_data import fetch_market_data  # noqa: F401, register tasks with Celery
@@ -9,6 +10,17 @@ from stock_trader.entrypoints.config import get_config
 from stock_trader.log_config import setup_logging
 
 config = get_config()
+
+TASK_QUEUES = (
+    Queue("backtest_queue", Exchange("backtest"), routing_key="backtest.#"),
+    Queue("fetch_queue", Exchange("fetch"), routing_key="fetch.#"),
+)
+
+TASK_ROUTES = {
+    "fetch_market_data": {"queue": "fetch_queue", "routing_key": "fetch.task"},
+    "run_backtest": {"queue": "backtest_queue", "routing_key": "backtest.task"},
+    "stock_trader.core.backtest.finalize_backtest_job": {"queue": "backtest_queue", "routing_key": "backtest.task"},
+}
 
 celery_app = Celery(
     main="stock_trader",
@@ -20,7 +32,6 @@ celery_app = Celery(
 
 celery_app.conf.update(
     accept_content=["json"],
-    worker_concurrency=1,
     worker_max_tasks_per_child=1,  # TODO: Experiment with this
     worker_prefetch_multiplier=1,
     result_serializer="json",
@@ -28,8 +39,8 @@ celery_app.conf.update(
     task_serializer="json",
     task_track_started=True,
     task_acks_late=True,
-    task_queues=config.task_queues,
-    task_routes=config.task_routes,
+    task_queues=TASK_QUEUES,
+    task_routes=TASK_ROUTES,
 )
 
 

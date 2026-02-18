@@ -81,7 +81,7 @@ class BollingerReversionStrategy:
                     in_position = True
                     trades.append(
                         Trade(
-                            timestamp=str(timestamp),
+                            timestamp=timestamp,
                             signal=SignalType.BUY,
                             price=close,
                             reason=f"Close ({close:.2f}) < Lower Band ({row['bb_lower']:.2f})",
@@ -93,7 +93,7 @@ class BollingerReversionStrategy:
                     in_position = False
                     trades.append(
                         Trade(
-                            timestamp=str(timestamp),
+                            timestamp=timestamp,
                             signal=SignalType.SELL,
                             price=close,
                             reason=f"Close ({close:.2f}) >= {self.exit_at.title()} Band ({row[exit_col]:.2f})",
@@ -105,7 +105,7 @@ class BollingerReversionStrategy:
             last_row = df.iloc[-1]
             trades.append(
                 Trade(
-                    timestamp=str(df.index[-1]),
+                    timestamp=df.index[-1],
                     signal=SignalType.SELL,
                     price=last_row["close"],
                     reason="End of data, forced exit",

@@ -65,17 +65,7 @@ async def get_backtest(job_id: UUID, backtest_service: BacktestService = Depends
         HTTPException: 404 if job not found.
     """
     job: BacktestJobTableSchema = await backtest_service.get_backtest_job(job_id=job_id)
-    return BacktestResponse(
-        uuid=job.uuid,
-        status=job.status,
-        strategy_name=job.strategy_name,
-        symbols=job.symbols,
-        parameters=job.parameters,
-        error=job.error,
-        create_time=job.create_time,
-        start_time=job.start_time,
-        end_time=job.end_time,
-    )
+    return BacktestResponse.from_job(job)
 
 
 @router.put("/{job_id}/run", summary="Dispatch backtest job")
@@ -126,17 +116,4 @@ async def list_backtests(
         limit=limit,
     )
 
-    return [
-        BacktestResponse(
-            uuid=job.uuid,
-            status=job.status,
-            strategy_name=job.strategy_name,
-            symbols=job.symbols,
-            parameters=job.parameters,
-            error=job.error,
-            create_time=job.create_time,
-            start_time=job.start_time,
-            end_time=job.end_time,
-        )
-        for job in jobs
-    ]
+    return [BacktestResponse.from_job(job) for job in jobs]

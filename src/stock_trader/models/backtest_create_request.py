@@ -3,6 +3,7 @@
 from datetime import date
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+
 from stock_trader.core.strategies.registry import STRATEGY_REGISTRY
 
 
@@ -25,6 +26,7 @@ class BacktestCreateRequest(BaseModel):
     @field_validator("strategy_name")
     @classmethod
     def validate_strategy(cls, v: str) -> str:
+        """Ensure the strategy name is valid and exists in the registry."""
         if v not in STRATEGY_REGISTRY:
             raise ValueError(f"Unknown strategy '{v}'. Available: {list(STRATEGY_REGISTRY.keys())}")
         return v

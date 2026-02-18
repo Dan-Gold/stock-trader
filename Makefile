@@ -134,6 +134,20 @@ stock-trader-mypy: stock-trader-tests-build ## Run mypy type checks
 	$(DOCKER_COMPOSE_COMMAND) run --rm stock_trader_tests mypy --config mypy.ini -p stock_trader -p tests
 
 
+.PHONY: stock-trader-unit-test
+stock-trader-unit-test: stock-trader-tests-build ## Run unit tests
+	$(DOCKER_COMPOSE_COMMAND) run --rm stock_trader_tests pytest tests/ -v
+
+
+.PHONY: stock-trader-unit-test-coverage-html-report
+stock-trader-unit-test-coverage-html-report: stock-trader-tests-build ## Run tests with coverage and extract HTML report
+	rm -rf cov_html_unit_stock_trader
+	docker rm -f stock_trader_test_cov 2> /dev/null || true
+	@$(DOCKER_COMPOSE_COMMAND) run --name stock_trader_test_cov --rm=false stock_trader_tests \
+		pytest tests/ -v --cov --cov-config=cov.ini --cov-report=html --cov-report=term; \
+	docker cp stock_trader_test_cov:/app/htmlcov ./cov_html_unit_stock_trader; \
+
+
 # ----------------------------
 # Redis (delegation only)
 # ----------------------------

@@ -90,6 +90,9 @@ class MarketDataTableSchema(DatabaseModelBase):
     @staticmethod
     def from_records(records: list["MarketDataTableSchema"]) -> OHLCVSeries:
         """Convert a list of MarketDataTableSchema records to a list of OHLCV models."""
+        if not records:
+            raise ValueError("No records to convert to OHLCVSeries")
+
         if not records[0].symbol or not records[0].interval:
             raise ValueError("Records must have symbol and interval to convert to OHLCVSeries")
 

@@ -11,7 +11,7 @@ from stock_trader.api.exception_handlers import add_exception_handlers
 from stock_trader.api.routes.backtest_router import router as backtest_router
 from stock_trader.entrypoints.config import StockTraderConfig, get_config
 from stock_trader.infrastructure.redis_client import RedisClient
-from stock_trader.logging import setup_logging
+from stock_trader.log_config import setup_logging
 
 settings: StockTraderConfig = get_config()
 logger = logging.getLogger(__name__)

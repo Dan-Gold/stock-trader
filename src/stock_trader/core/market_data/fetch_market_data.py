@@ -9,7 +9,7 @@ from stock_trader.core.market_data.market_data_service import MarketDataService
 from stock_trader.core.market_data.providers.market_data_provider_interface import ProviderError
 from stock_trader.core.market_data.providers.massive.provider import MassiveProvider
 from stock_trader.core.market_data.providers.massive.rate_limiter import MassiveRateLimiter
-from stock_trader.db.db_engine import database_session_sync
+from stock_trader.db.db_engine import get_sync_session_maker
 from stock_trader.db.repositories.market_data_repo import MarketDataRepositorySync
 from stock_trader.db.repositories.worker_repo import BacktestRepositorySync
 from stock_trader.entrypoints.config import get_config
@@ -26,7 +26,7 @@ def _on_fetch_failure(self: Task, exc: Exception, task_id: str, args: tuple, kwa
 
     logger.error("Job %s: fetch_market_data failed permanently: %s", job_id, exc)
 
-    repo = BacktestRepositorySync(database_session_sync)
+    repo = BacktestRepositorySync(get_sync_session_maker())
     repo.update_job_status(
         UUID(job_id),
         BacktestStatusEnum.FAILED,
@@ -54,7 +54,7 @@ def fetch_market_data(job_id: str) -> str:
     Returns:
         The job_id (passes through to the next task in the chain).
     """
-    repo = BacktestRepositorySync(database_session_sync)
+    repo = BacktestRepositorySync(get_sync_session_maker())
     job = repo.get_backtest_job(UUID(job_id))
 
     logger.info("Job %s: Fetching %s data for %d symbols: %s", job_id, IntervalEnum.ONE_MINUTE, len(job.symbols), job.symbols)
@@ -84,7 +84,7 @@ def _build_market_data_service() -> MarketDataService:
 
     provider = MassiveProvider(api_key=config.massive_api_key)
     rate_limiter = MassiveRateLimiter()
-    market_data_repo = MarketDataRepositorySync(database_session_sync)
+    market_data_repo = MarketDataRepositorySync(get_sync_session_maker())
 
     return MarketDataService(
         market_data_repository=market_data_repo,

@@ -8,7 +8,7 @@ from celery import shared_task
 
 from stock_trader.core.interfaces.strategy_interface import IStrategy
 from stock_trader.core.strategies.registry import get_strategy
-from stock_trader.db.db_engine import database_session_sync
+from stock_trader.db.db_engine import get_sync_session_maker
 from stock_trader.db.repositories.market_data_repo import MarketDataRepositorySync
 from stock_trader.db.repositories.worker_repo import BacktestRepositorySync
 from stock_trader.models.shared_enums import BacktestStatusEnum
@@ -38,8 +38,8 @@ def run_backtest(job_id: str, symbol: str) -> dict:
     Returns:
         A dict containing either the backtest success or an error.
     """
-    backtest_repo = BacktestRepositorySync(database_session_sync)
-    market_data_repo = MarketDataRepositorySync(database_session_sync)
+    backtest_repo = BacktestRepositorySync(get_sync_session_maker())
+    market_data_repo = MarketDataRepositorySync(get_sync_session_maker())
     job_uuid = UUID(job_id)
 
     try:
@@ -106,7 +106,7 @@ def finalize_backtest_job(results: list[dict], job_id: str) -> None:
         results: List of return dicts from each run_backtest task.
         job_id: The parent backtest job UUID (as string).
     """
-    repo = BacktestRepositorySync(database_session_sync)
+    repo = BacktestRepositorySync(get_sync_session_maker())
     job_uuid = UUID(job_id)
 
     failed = [r for r in results if r.get("error")]

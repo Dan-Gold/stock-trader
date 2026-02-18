@@ -10,6 +10,7 @@ from stock_trader.core.market_data.fetch_market_data import fetch_market_data
 from stock_trader.db.interfaces.backtest_repo_interface import IBacktestRepoInterface
 from stock_trader.db.models.backtest_jobs import BacktestJobTableSchema
 from stock_trader.models.backtest_create_request import BacktestCreateRequest
+from stock_trader.models.exceptions import JobAlreadyRunningError
 from stock_trader.models.shared_enums import BacktestStatusEnum
 
 
@@ -56,6 +57,9 @@ class BacktestService:
             job_id: The UUID of the backtest job to dispatch.
         """
         job = await self.backtest_repository.get_backtest_job(job_id=job_id)
+
+        if job.status == BacktestStatusEnum.RUNNING:
+            raise JobAlreadyRunningError(f"Job {job_id} is already running")
 
         # Update job status to running
         await self.backtest_repository.update_job_status(

@@ -12,11 +12,11 @@ from stock_trader.entrypoints.config import StockTraderConfig
 logger = logging.getLogger(__name__)
 
 
-def get_database_url(db_name: str, config: StockTraderConfig, add_async: bool = False) -> str:
+def get_database_url(db_name: str, config: StockTraderConfig, is_async: bool = False) -> str:
     """Generate a database URL from configuration settings."""
     encode_password = quote_plus(config.db_password)
 
-    if add_async:
+    if is_async:
         return f"postgresql+asyncpg://{config.db_username}:{encode_password}@{config.db_host}:{config.db_port}/{db_name}"
 
     return f"postgresql://{config.db_username}:{encode_password}@{config.db_host}:{config.db_port}/{db_name}"

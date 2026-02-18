@@ -3,7 +3,7 @@
 from fastapi import Depends, Request
 
 from stock_trader.api.services.backtest_service import BacktestService
-from stock_trader.db.db_engine import database_session
+from stock_trader.db.db_engine import get_async_session_maker
 from stock_trader.db.interfaces.backtest_repo_interface import IBacktestRepoInterface
 from stock_trader.db.repositories.backtest_repo import BacktestRepository
 from stock_trader.infrastructure.redis_client import IRedisClient
@@ -15,7 +15,7 @@ def get_backtest_repository() -> IBacktestRepoInterface:
     Returns:
         The backtest repository.
     """
-    return BacktestRepository(session_maker=database_session)
+    return BacktestRepository(session_maker=get_async_session_maker())
 
 
 def get_redis_client(request: Request) -> IRedisClient:

@@ -7,7 +7,7 @@ from collections.abc import Awaitable, Callable
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-from stock_trader.models.exceptions import JobNotFoundError
+from stock_trader.models.exceptions import JobAlreadyRunningError, JobNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 SIMPLE_EXCEPTION_HANDLERS: dict[type[Exception], int] = {
     ValueError: status.HTTP_400_BAD_REQUEST,
     JobNotFoundError: status.HTTP_404_NOT_FOUND,
+    JobAlreadyRunningError: status.HTTP_409_CONFLICT,
 }
 
 TRACEBACK_EXCEPTION_HANDLERS: dict[type[Exception], int] = {

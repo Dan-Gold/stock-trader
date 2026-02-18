@@ -6,7 +6,7 @@ import sqlalchemy_utils
 
 from stock_trader.db.db_helpers import apply_migrations, get_database_url
 from stock_trader.entrypoints.config import get_config
-from stock_trader.logging import setup_logging
+from stock_trader.log_config import setup_logging
 
 logger = logging.getLogger(__name__)
 

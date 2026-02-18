@@ -2,7 +2,8 @@
 
 from datetime import date
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+from stock_trader.core.strategies.registry import STRATEGY_REGISTRY
 
 
 class BacktestCreateRequest(BaseModel):
@@ -20,3 +21,10 @@ class BacktestCreateRequest(BaseModel):
         if self.end_date < self.start_date:
             raise ValueError("end_date cannot be before start_date")
         return self
+
+    @field_validator("strategy_name")
+    @classmethod
+    def validate_strategy(cls, v: str) -> str:
+        if v not in STRATEGY_REGISTRY:
+            raise ValueError(f"Unknown strategy '{v}'. Available: {list(STRATEGY_REGISTRY.keys())}")
+        return v

@@ -3,12 +3,13 @@
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from stock_trader.api.dependencies import get_backtest_service
 from stock_trader.api.services.backtest_service import BacktestService
 from stock_trader.db.models.backtest_jobs import BacktestJobTableSchema
 from stock_trader.models.backtest_create_request import BacktestCreateRequest
+from stock_trader.models.exceptions import JobAlreadyRunningError
 from stock_trader.models.responses.backtest_create_response import BacktestCreateResponse
 from stock_trader.models.responses.backtest_response import BacktestResponse
 from stock_trader.models.shared_enums import BacktestStatusEnum
@@ -89,9 +90,12 @@ async def dispatch_backtest(job_id: UUID, backtest_service: BacktestService = De
         None
 
     Raises:
-        HTTPException: 404 if job not found, 400 if job is not in PENDING status.
+        HTTPException: 404 if job not found, 409 if job is already running.
     """
-    await backtest_service.dispatch_backtest_job(job_id=job_id)
+    try:
+        await backtest_service.dispatch_backtest_job(job_id=job_id)
+    except JobAlreadyRunningError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
 
 @router.get(

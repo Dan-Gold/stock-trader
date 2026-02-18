@@ -30,7 +30,7 @@ class IRedisClient(Protocol):
         """Get cached value."""
         ...
 
-    async def set(self, key: str, value: str, ttl: int = 3600) -> None:
+    async def set(self, key: str, value: str, ttl: int | None = 3600) -> None:
         """Set cached value with optional TTL."""
         ...
 
@@ -244,7 +244,7 @@ class DisabledRedisClient:
         """Get a cached value by key."""
         return None
 
-    async def set(self, key: str, value: str, ttl: int = 3600) -> None:
+    async def set(self, key: str, value: str, ttl: int | None = 3600) -> None:
         """Set a cached value with optional TTL."""
         pass
 

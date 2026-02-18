@@ -110,7 +110,7 @@ class BacktestRepository:
             if status_filter:
                 query = query.where(BacktestJobTableSchema.status == status_filter)
 
-            query = query.offset(offset).limit(limit)
+            query = query.order_by(BacktestJobTableSchema.create_time.desc()).offset(offset).limit(limit)
             result = await session.execute(query)
 
             return result.scalars().all()

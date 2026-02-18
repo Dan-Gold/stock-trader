@@ -18,7 +18,7 @@ from stock_trader.models.shared_enums import BacktestStatusEnum, IntervalEnum
 logger = logging.getLogger(__name__)
 
 
-def _on_fetch_failure(self: Task, exc: Exception, task_id: str, args: tuple, kwargs: dict, einfo: object) -> None:
+def _on_fetch_failure(task: Task, exc: Exception, task_id: str, args: tuple, kwargs: dict, einfo: object) -> None:
     """Mark the backtest job as FAILED when fetch exhausts all retries."""
     job_id = args[0] if args else kwargs.get("job_id")
     if not job_id:

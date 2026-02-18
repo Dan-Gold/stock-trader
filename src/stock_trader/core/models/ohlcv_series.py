@@ -49,7 +49,7 @@ class OHLCVSeries(BaseModel):
             DataFrame with columns: open, high, low, close, volume,
             and optionally vwap, transactions.
         """
-        df = pd.DataFrame([bar.model_dump(exclude={"symbol", "interval"}) for bar in self.bars])
+        df = pd.DataFrame([bar.model_dump() for bar in self.bars])
         df.set_index("timestamp", inplace=True)
         df.sort_index(inplace=True)
 

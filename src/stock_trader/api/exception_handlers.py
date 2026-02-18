@@ -1,7 +1,6 @@
 """Exception handlers for the Stock Trader API."""
 
 import logging
-import traceback
 from collections.abc import Awaitable, Callable
 
 from fastapi import FastAPI, Request, status
@@ -39,7 +38,6 @@ def add_exception_handlers(app: FastAPI) -> None:
         create_formatted_exception_handler(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             "An unexpected error occurred: {exception!s}",
-            include_traceback=True,
         ),
     )
 
@@ -54,7 +52,7 @@ def add_exception_handlers(app: FastAPI) -> None:
     for exception_type, status_code in TRACEBACK_EXCEPTION_HANDLERS.items():
         app.add_exception_handler(
             exception_type,
-            create_simple_exception_handler(status_code, include_traceback=True),
+            create_simple_exception_handler(status_code),
         )
 
     # Formatted message handlers
@@ -71,14 +69,12 @@ def add_exception_handlers(app: FastAPI) -> None:
 def create_formatted_exception_handler(
     status_code: int,
     message_template: str,
-    include_traceback: bool = False,
 ) -> Callable[[Request, Exception], Awaitable[JSONResponse]]:
     """Factory to create a formatted exception handler.
 
     Args:
         status_code: The HTTP status code to return.
         message_template: The message template for the exception.
-        include_traceback: Whether to include the traceback in the response.
 
     Returns:
         A FastAPI exception handler function.
@@ -86,9 +82,6 @@ def create_formatted_exception_handler(
 
     async def handler(request: Request, exception: Exception) -> JSONResponse:
         logger.exception("Handled exception: %s", exception)
-
-        if include_traceback:
-            logger.error("Traceback:\n%s", traceback.format_exc())
 
         return JSONResponse(
             status_code=status_code,
@@ -99,13 +92,12 @@ def create_formatted_exception_handler(
 
 
 def create_simple_exception_handler(
-    status_code: int, include_traceback: bool = False
+    status_code: int,
 ) -> Callable[[Request, Exception], Awaitable[JSONResponse]]:
     """Factory to create a simple exception handler.
 
     Args:
         status_code: The HTTP status code to return.
-        include_traceback: Whether to include the traceback in the response.
 
     Returns:
         A FastAPI exception handler function.
@@ -113,9 +105,6 @@ def create_simple_exception_handler(
 
     async def handler(request: Request, exception: Exception) -> JSONResponse:
         logger.exception("Handled exception: %s", exception)
-
-        if include_traceback:
-            logger.error("Traceback:\n%s", traceback.format_exc())
 
         return JSONResponse(
             status_code=status_code,

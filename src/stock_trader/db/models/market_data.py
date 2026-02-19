@@ -26,7 +26,7 @@ class MarketDataTableSchema(DatabaseModelBase):
     (symbol, interval, timestamp) combination.
 
     Designed for the cache-aside pattern:
-        Redis (hot cache) → Postgres (persistent store) → Alpha Vantage (source)
+        Redis (hot cache) -> Postgres (persistent store) -> Alpha Vantage (source)
 
     Usage:
         - Bulk insert with ON CONFLICT DO NOTHING to skip duplicates.

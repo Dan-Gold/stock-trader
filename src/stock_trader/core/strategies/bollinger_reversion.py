@@ -17,7 +17,7 @@ class BollingerReversionStrategy:
     Parameters:
         length: Bollinger Band lookback period (default 20)
         std_dev: Number of standard deviations for bands (default 2.0)
-        exit_at: Where to exit — "middle" (SMA) or "upper" (upper band)
+        exit_at: Where to exit, "middle" (SMA) or "upper" (upper band)
         initial_capital: Starting capital for return calculations
     """
 

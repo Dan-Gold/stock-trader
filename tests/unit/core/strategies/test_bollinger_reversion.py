@@ -76,13 +76,12 @@ class TestBollingerRun:
 
         result = BollingerReversionStrategy().run(df)
 
-        if result.trades:
-            last_trade = result.trades[-1]
-            # Should end with a sell (either natural or forced)
-            assert last_trade.signal == SignalType.SELL
+        assert len(result.trades) >= 2, "Expected at least one BUY/SELL pair"
+        last_trade = result.trades[-1]
+        assert last_trade.signal == SignalType.SELL
 
     def test_trades_alternate_buy_sell(self) -> None:
-        """Trades should always alternate BUY → SELL (no pyramiding)."""
+        """Trades should always alternate BUY -> SELL (no pyramiding)."""
         prices = flat_then_dip_then_revert(dip_price=80.0, revert_price=100.0)
         df = make_ohlcv_df(prices)
 
@@ -117,7 +116,7 @@ class TestBollingerRun:
         assert result.end_date is not None
 
     def test_too_few_rows_raises(self) -> None:
-        """If df has fewer rows than length, bbands returns None → ValueError."""
+        """If df has fewer rows than length, bbands returns None -> ValueError."""
         prices = [100.0] * 5  # only 5 rows, need 20
         df = make_ohlcv_df(prices)
 
@@ -135,10 +134,9 @@ class TestBollingerRun:
         middle_sells = [t for t in result_middle.trades if t.signal == SignalType.SELL]
         upper_sells = [t for t in result_upper.trades if t.signal == SignalType.SELL]
 
-        # Middle exit should sell sooner, the upper band is higher, so
-        # either the upper exit sells later or doesn't sell at all (forced exit).
-        if middle_sells and upper_sells:
-            assert upper_sells[0].timestamp >= middle_sells[0].timestamp
+        assert middle_sells, "Expected at least one SELL with exit_at='middle'"
+        assert upper_sells, "Expected at least one SELL with exit_at='upper'"
+        assert upper_sells[0].timestamp >= middle_sells[0].timestamp
 
     def test_winning_trade_metrics(self) -> None:
         """A profitable round-trip should show positive return and win rate."""
@@ -153,6 +151,6 @@ class TestBollingerRun:
 
         result = BollingerReversionStrategy().run(df)
 
-        if result.metrics.num_trades > 0:
-            assert result.metrics.win_rate > 0
-            assert result.metrics.ending_capital > 0
+        assert result.metrics.num_trades > 0, "Expected at least one round-trip trade"
+        assert result.metrics.win_rate > 0
+        assert result.metrics.ending_capital > 0

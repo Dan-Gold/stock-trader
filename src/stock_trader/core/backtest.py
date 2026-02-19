@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 def run_backtest(job_id: str, symbol: str) -> dict:
     """Run a backtest for a single symbol within a job.
 
-    This task is dispatched as part of a Celery chord — one task per symbol.
+    This task is dispatched as part of a Celery chord, one task per symbol.
     After all symbol tasks complete, the finalize_backtest_job callback runs.
 
     Exceptions are caught and returned as error dicts so the chord always
@@ -75,7 +75,7 @@ def run_backtest(job_id: str, symbol: str) -> dict:
         strategy: IStrategy = strategy_cls(**strategy_params)
         results = strategy.run(df)
 
-        logger.info(f"Job {job_id}: Backtest complete for {symbol} — total return: {results.metrics.total_return_pct:.2f}%")
+        logger.info(f"Job {job_id}: Backtest complete for {symbol} - total return: {results.metrics.total_return_pct:.2f}%")
 
         # ------------------------------------------------------------------
         # Step 4: Persist results to the database.
@@ -97,7 +97,7 @@ def run_backtest(job_id: str, symbol: str) -> dict:
 
 @shared_task()
 def finalize_backtest_job(results: list[dict], job_id: str) -> None:
-    """Chord callback — mark the parent job as completed or failed.
+    """Chord callback, mark the parent job as completed or failed.
 
     This runs automatically after all run_backtest tasks in the chord finish.
     Celery passes the list of return values from all tasks as the first argument.

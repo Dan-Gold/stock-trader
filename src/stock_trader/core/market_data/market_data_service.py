@@ -17,7 +17,7 @@ class MarketDataService:
 
     Flow:
         1. Check Postgres for existing data
-        2. If missing → fetch from the provider (Massive)
+        2. If missing -> fetch from the provider (Massive)
         3. Save to Postgres for future requests
         4. Return OHLCVSeries
 
@@ -65,7 +65,7 @@ class MarketDataService:
             logger.info("DB hit: %d bars for %s (%s to %s)", len(existing), symbol, start_date, end_date)
             return existing
 
-        # 2. DB miss → fetch from provider
+        # 2. DB miss -> fetch from provider
         logger.info("DB miss for %s (%s to %s), fetching from %s", symbol, start_date, end_date, self.provider.name)
 
         if self.rate_limiter:

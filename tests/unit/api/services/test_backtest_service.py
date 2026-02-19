@@ -117,7 +117,8 @@ class TestDispatchBacktestJob:
 
         await service.dispatch_backtest_job(job.uuid)
 
-        assert job.status == BacktestStatusEnum.RUNNING
+        refreshed = await service.get_backtest_job(job.uuid)
+        assert refreshed.status == BacktestStatusEnum.RUNNING
 
     async def test_raises_if_already_running(
         self,

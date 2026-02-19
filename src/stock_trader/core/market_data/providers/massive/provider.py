@@ -12,7 +12,7 @@ from stock_trader.models.shared_enums import IntervalEnum
 
 logger = logging.getLogger(__name__)
 
-# Maps our canonical IntervalEnum → Massive API (multiplier, timespan) params
+# Maps our canonical IntervalEnum -> Massive API (multiplier, timespan) params
 _INTERVAL_MAP: dict[IntervalEnum, tuple[int, str]] = {
     IntervalEnum.ONE_MINUTE: (1, "minute"),
     IntervalEnum.FIVE_MINUTE: (5, "minute"),

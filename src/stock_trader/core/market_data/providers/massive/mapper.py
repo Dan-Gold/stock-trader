@@ -1,4 +1,4 @@
-"""Massive (formerly Polygon.io) API → OHLCV domain model mapper."""
+"""Massive (formerly Polygon.io) API -> OHLCV domain model mapper."""
 
 from __future__ import annotations
 
@@ -36,18 +36,18 @@ def resolve_interval(multiplier: int, timespan: str) -> IntervalEnum:
     return interval
 
 
-def agg_to_ohlcv(agg: Agg, symbol: str, interval: IntervalEnum) -> OHLCV:
+def agg_to_ohlcv(agg: Agg) -> OHLCV:
     """Convert a single Massive ``Agg`` object to an OHLCV domain model.
+
+    Note:
+        ``symbol`` and ``interval`` are not stored on individual bars;
+        they live on the parent ``OHLCVSeries``.
 
     Args:
         agg: A Massive ``Agg`` object with attributes: timestamp, open, high, low, close, volume, vwap, transactions.
-        symbol: Ticker symbol, e.g. ``"AAPL"``.
-        interval: The resolved IntervalEnum value.
     """
     return OHLCV(
-        symbol=symbol,
         timestamp=datetime.fromtimestamp(agg.timestamp / 1000, tz=timezone.utc),
-        interval=interval,
         open=agg.open,
         high=agg.high,
         low=agg.low,
@@ -77,5 +77,5 @@ def aggs_to_ohlcv_series(
             mapped to a known IntervalEnum value.
     """
     interval = resolve_interval(multiplier, timespan)
-    bars = [agg_to_ohlcv(a, symbol, interval) for a in aggs]
+    bars = [agg_to_ohlcv(a) for a in aggs]
     return OHLCVSeries(symbol=symbol, interval=interval, bars=bars)

@@ -59,7 +59,7 @@ class BacktestResult(BaseModel):
 
     def to_summary(self) -> dict:
         """Build the summary JSONB payload for BacktestResultTableSchema.summary."""
-        return self.model_dump(include={"strategy", "params", "start_date", "end_date", "metrics"})
+        return self.model_dump(mode="json", include={"strategy", "params", "start_date", "end_date", "metrics"})
 
     def to_raw(self) -> dict:
         """Build the raw JSONB payload for BacktestResultTableSchema.raw."""
@@ -71,7 +71,7 @@ class BacktestResult(BaseModel):
         # Convert index timestamps to strings for JSON serialization
         raw["index"] = [str(ts) for ts in raw["index"]]
 
-        raw["trades"] = [trade.model_dump() for trade in self.trades]
+        raw["trades"] = [trade.model_dump(mode="json") for trade in self.trades]
 
         return raw
 

@@ -1,9 +1,23 @@
 """Bollinger Band mean reversion strategy implementation."""
 
+from typing import Literal
+
 import pandas as pd
 import pandas_ta as ta
+from pydantic import BaseModel, ConfigDict, Field
 
 from stock_trader.core.strategies.models import BacktestResult, SignalType, Trade, calculate_metrics
+
+
+class BollingerParams(BaseModel):
+    """Validated parameters for the Bollinger Reversion strategy."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    length: int = Field(default=20, ge=5, le=200, description="Bollinger Band lookback period")
+    std_dev: float = Field(default=2.0, gt=0, le=5.0, description="Number of standard deviations for bands")
+    exit_at: Literal["middle", "upper"] = Field(default="middle", description="Which band to exit at")
+    initial_capital: float = Field(default=10000.0, gt=0, description="Starting capital for return calculations")
 
 
 class BollingerReversionStrategy:
@@ -13,38 +27,21 @@ class BollingerReversionStrategy:
         - BUY when price closes below the lower band (oversold)
         - SELL when price reverts to the middle band (SMA) or hits upper band
         - Only one position at a time (no pyramiding)
-
-    Parameters:
-        length: Bollinger Band lookback period (default 20)
-        std_dev: Number of standard deviations for bands (default 2.0)
-        exit_at: Where to exit, "middle" (SMA) or "upper" (upper band)
-        initial_capital: Starting capital for return calculations
     """
 
     name: str = "bollinger_reversion"
+    params_model = BollingerParams
 
-    def __init__(
-        self,
-        length: int = 20,
-        std_dev: float = 2.0,
-        exit_at: str = "middle",
-        initial_capital: float = 10000.0,
-    ) -> None:
-        if exit_at not in ("middle", "upper"):
-            raise ValueError(f"exit_at must be 'middle' or 'upper', got '{exit_at}'")
+    def __init__(self, params: BollingerParams | None = None, **kwargs: object) -> None:
+        if params is None:
+            params = BollingerParams(**kwargs)
 
-        self.length = length
-        self.std_dev = std_dev
-        self.exit_at = exit_at
-        self.initial_capital = initial_capital
+        self.length = params.length
+        self.std_dev = params.std_dev
+        self.exit_at = params.exit_at
+        self.initial_capital = params.initial_capital
 
-        # Store parameters in a dict for easy access in results
-        self._params = {
-            "initial_capital": self.initial_capital,
-            "length": self.length,
-            "std_dev": self.std_dev,
-            "exit_at": self.exit_at,
-        }
+        self._params = params.model_dump()
 
     def run(self, df: pd.DataFrame) -> BacktestResult:
         """Run Bollinger Band mean reversion against price data."""
@@ -55,11 +52,18 @@ class BollingerReversionStrategy:
         if bbands is None:
             raise ValueError(f"pandas-ta returned None for bbands. Check that df has at least {self.length} rows.")
 
-        # pandas-ta names columns like: BBL_20_2.0_2.0, BBM_20_2.0_2.0, BBU_20_2.0_2.0
-        suffix = f"{self.length}_{self.std_dev}_{self.std_dev}"
-        df["bb_lower"] = bbands[f"BBL_{suffix}"]
-        df["bb_middle"] = bbands[f"BBM_{suffix}"]
-        df["bb_upper"] = bbands[f"BBU_{suffix}"]
+        # pandas-ta column names vary by version (e.g. BBL_20_2.0 or BBL_20_2.0_2.0).
+        # Look up by prefix to avoid hard-coding the suffix format.
+        col_map: dict[str, str] = {}
+        for prefix in ("BBL", "BBM", "BBU"):
+            matches = [c for c in bbands.columns if c.startswith(prefix)]
+            if not matches:
+                raise ValueError(f"Expected a '{prefix}_*' column in bbands output, got: {list(bbands.columns)}")
+            col_map[prefix] = matches[0]
+
+        df["bb_lower"] = bbands[col_map["BBL"]]
+        df["bb_middle"] = bbands[col_map["BBM"]]
+        df["bb_upper"] = bbands[col_map["BBU"]]
 
         indicator_columns = ["bb_lower", "bb_middle", "bb_upper"]
 

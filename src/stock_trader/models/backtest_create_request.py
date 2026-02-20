@@ -30,3 +30,15 @@ class BacktestCreateRequest(BaseModel):
         if v not in STRATEGY_REGISTRY:
             raise ValueError(f"Unknown strategy '{v}'. Available: {list(STRATEGY_REGISTRY.keys())}")
         return v
+
+    @model_validator(mode="after")
+    def validate_parameters(self) -> "BacktestCreateRequest":
+        """Validate parameters against the strategy's params model.
+
+        This catches invalid/unknown params at request time instead of
+        letting them fail inside the Celery worker.
+        """
+        entry = STRATEGY_REGISTRY.get(self.strategy_name)
+        if entry is not None:
+            entry.params_model(**self.parameters)
+        return self

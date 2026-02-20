@@ -1,27 +1,47 @@
 """Strategy registry and lookup function."""
 
-from stock_trader.core.interfaces.strategy_interface import IStrategy
-from stock_trader.core.strategies.bollinger_reversion import BollingerReversionStrategy
+from typing import NamedTuple
 
-STRATEGY_REGISTRY: dict[str, type[IStrategy]] = {
-    "bollinger_reversion": BollingerReversionStrategy,
-    # "rsi_oversold": RsiOversoldStrategy,  # future
+from pydantic import BaseModel
+
+from stock_trader.core.interfaces.strategy_interface import IStrategy
+from stock_trader.core.strategies.bollinger_reversion import BollingerParams, BollingerReversionStrategy
+
+
+class StrategyEntry(NamedTuple):
+    """A registered strategy with its parameter schema."""
+
+    strategy_cls: type[IStrategy]
+    params_model: type[BaseModel]
+
+
+STRATEGY_REGISTRY: dict[str, StrategyEntry] = {
+    "bollinger_reversion": StrategyEntry(BollingerReversionStrategy, BollingerParams),
+    # "rsi_oversold": StrategyEntry(RsiOversoldStrategy, RsiParams),
 }
 
 
 def get_strategy(name: str) -> type[IStrategy]:
     """Look up a strategy class by name.
 
-    This is what the Celery task calls:
-        strategy_cls = get_strategy(job.strategy_name)
-        strategy = strategy_cls(**job.parameters)
-        result = strategy.run(df)
+    Raises:
+        ValueError: If the strategy name isn't registered.
+    """
+    entry = STRATEGY_REGISTRY.get(name)
+    if entry is None:
+        available = ", ".join(STRATEGY_REGISTRY.keys())
+        raise ValueError(f"Unknown strategy '{name}'. Available: {available}")
+    return entry.strategy_cls
+
+
+def get_params_model(name: str) -> type[BaseModel]:
+    """Look up a strategy's params model by name.
 
     Raises:
         ValueError: If the strategy name isn't registered.
     """
-    if name not in STRATEGY_REGISTRY:
+    entry = STRATEGY_REGISTRY.get(name)
+    if entry is None:
         available = ", ".join(STRATEGY_REGISTRY.keys())
         raise ValueError(f"Unknown strategy '{name}'. Available: {available}")
-
-    return STRATEGY_REGISTRY[name]
+    return entry.params_model

@@ -1,37 +1,83 @@
 """Unit tests for BollingerReversionStrategy."""
 
 import pytest
+from pydantic import ValidationError
 
-from stock_trader.core.strategies.bollinger_reversion import BollingerReversionStrategy
+from stock_trader.core.strategies.bollinger_reversion import BollingerParams, BollingerReversionStrategy
 from stock_trader.core.strategies.models import SignalType
 from tests.helpers import flat_then_dip_then_revert, make_ohlcv_df
+
+
+class TestBollingerParams:
+    """Tests for BollingerParams validation."""
+
+    def test_defaults(self) -> None:
+        params = BollingerParams()
+
+        assert params.length == 20
+        assert params.std_dev == 2.0
+        assert params.exit_at == "middle"
+        assert params.initial_capital == 10000.0
+
+    def test_custom_values(self) -> None:
+        params = BollingerParams(length=10, std_dev=1.5, exit_at="upper", initial_capital=50000)
+
+        assert params.length == 10
+        assert params.std_dev == 1.5
+        assert params.exit_at == "upper"
+        assert params.initial_capital == 50000.0
+
+    def test_invalid_exit_at_raises(self) -> None:
+        with pytest.raises(ValidationError, match="Input should be 'middle' or 'upper'"):
+            BollingerParams(exit_at="invalid")
+
+    def test_length_below_minimum_raises(self) -> None:
+        with pytest.raises(ValidationError, match="greater than or equal to 5"):
+            BollingerParams(length=2)
+
+    def test_std_dev_zero_raises(self) -> None:
+        with pytest.raises(ValidationError, match="greater than 0"):
+            BollingerParams(std_dev=0)
+
+    def test_negative_capital_raises(self) -> None:
+        with pytest.raises(ValidationError, match="greater than 0"):
+            BollingerParams(initial_capital=-100)
+
+    def test_unknown_param_raises(self) -> None:
+        """Extra keys should be rejected."""
+        with pytest.raises(ValidationError, match="Extra inputs"):
+            BollingerParams(length=20, unknown_key="oops")
+
+    def test_coerces_float_length_to_int(self) -> None:
+        """JSON round-trips may produce float for int fields; Pydantic should coerce."""
+        params = BollingerParams(length=20.0)
+
+        assert params.length == 20
+        assert isinstance(params.length, int)
 
 
 class TestBollingerInit:
     """Tests for BollingerReversionStrategy constructor."""
 
-    def test_default_parameters(self) -> None:
-        """Default parameters should be set correctly when not provided."""
+    def test_accepts_params_model(self) -> None:
+        """Constructor should accept a BollingerParams instance."""
+        params = BollingerParams(length=10, std_dev=1.5, exit_at="upper")
+        strategy = BollingerReversionStrategy(params=params)
+
+        assert strategy.length == 10
+        assert strategy.std_dev == 1.5
+
+    def test_accepts_kwargs(self) -> None:
+        """Constructor should still accept bare kwargs for convenience."""
+        strategy = BollingerReversionStrategy(length=15)
+
+        assert strategy.length == 15
+
+    def test_defaults_without_args(self) -> None:
         strategy = BollingerReversionStrategy()
 
         assert strategy.length == 20
         assert strategy.std_dev == 2.0
-        assert strategy.exit_at == "middle"
-        assert strategy.initial_capital == 10000.0
-
-    def test_custom_parameters(self) -> None:
-        """Custom parameters should be set correctly when provided."""
-        strategy = BollingerReversionStrategy(length=10, std_dev=1.5, exit_at="upper", initial_capital=50000)
-
-        assert strategy.length == 10
-        assert strategy.std_dev == 1.5
-        assert strategy.exit_at == "upper"
-        assert strategy.initial_capital == 50000.0
-
-    def test_invalid_exit_at_raises(self) -> None:
-        """Providing an invalid exit_at value should raise a ValueError."""
-        with pytest.raises(ValueError, match="exit_at must be"):
-            BollingerReversionStrategy(exit_at="invalid")
 
 
 class TestBollingerRun:

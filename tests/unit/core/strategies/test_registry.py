@@ -1,9 +1,10 @@
 """Unit tests for strategy registry."""
 
 import pytest
+from pydantic import BaseModel
 
-from stock_trader.core.strategies.bollinger_reversion import BollingerReversionStrategy
-from stock_trader.core.strategies.registry import STRATEGY_REGISTRY, get_strategy
+from stock_trader.core.strategies.bollinger_reversion import BollingerParams, BollingerReversionStrategy
+from stock_trader.core.strategies.registry import STRATEGY_REGISTRY, get_params_model, get_strategy
 
 
 class TestGetStrategy:
@@ -20,11 +21,20 @@ class TestGetStrategy:
         with pytest.raises(ValueError, match="Unknown strategy"):
             get_strategy("nonexistent_strategy")
 
-    def test_registry_contains_bollinger(self) -> None:
-        """The 'bollinger_reversion' strategy should be registered."""
-        assert "bollinger_reversion" in STRATEGY_REGISTRY
 
-    def test_registry_values_are_types(self) -> None:
-        """All registry values should be classes."""
-        for name, cls in STRATEGY_REGISTRY.items():
-            assert isinstance(cls, type), f"Registry value for '{name}' should be a class"
+class TestGetParamsModel:
+    """Tests for get_params_model lookup."""
+
+    def test_returns_bollinger_params(self) -> None:
+        model = get_params_model("bollinger_reversion")
+
+        assert model is BollingerParams
+
+    def test_raises_for_unknown_strategy(self) -> None:
+        with pytest.raises(ValueError, match="Unknown strategy"):
+            get_params_model("nonexistent")
+
+    def test_all_entries_have_base_model_params(self) -> None:
+        """Every registry entry should have a params_model subclassing BaseModel."""
+        for name, entry in STRATEGY_REGISTRY.items():
+            assert issubclass(entry.params_model, BaseModel), f"'{name}' params_model should subclass BaseModel"

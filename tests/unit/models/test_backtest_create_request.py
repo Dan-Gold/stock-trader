@@ -100,10 +100,57 @@ class TestBacktestCreateRequestValidation:
         req = BacktestCreateRequest(
             strategy_name="bollinger_reversion",
             symbols=["AAPL"],
-            parameters={"length": 20, "std_dev": 2.0, "exit_at": "middle", "verbose": True},
+            parameters={"length": 20, "std_dev": 2.0, "exit_at": "middle"},
             start_date=date(2024, 1, 1),
             end_date=date(2024, 6, 30),
         )
 
         assert req.parameters["length"] == 20
-        assert req.parameters["verbose"] is True
+
+
+class TestParameterValidation:
+    """Tests for strategy-specific parameter validation at request time."""
+
+    def test_unknown_param_key_raises(self) -> None:
+        """A parameter key unknown to the strategy should raise ValidationError."""
+        with pytest.raises(ValidationError, match="Extra inputs"):
+            BacktestCreateRequest(
+                strategy_name="bollinger_reversion",
+                symbols=["AAPL"],
+                parameters={"length": 20, "unknown_key": 42},
+                start_date=date(2024, 1, 1),
+                end_date=date(2024, 6, 30),
+            )
+
+    def test_out_of_range_length_raises(self) -> None:
+        """A length below the minimum should fail validation."""
+        with pytest.raises(ValidationError, match="greater than or equal to 5"):
+            BacktestCreateRequest(
+                strategy_name="bollinger_reversion",
+                symbols=["AAPL"],
+                parameters={"length": 2},
+                start_date=date(2024, 1, 1),
+                end_date=date(2024, 6, 30),
+            )
+
+    def test_invalid_exit_at_raises(self) -> None:
+        with pytest.raises(ValidationError, match="Input should be 'middle' or 'upper'"):
+            BacktestCreateRequest(
+                strategy_name="bollinger_reversion",
+                symbols=["AAPL"],
+                parameters={"exit_at": "invalid"},
+                start_date=date(2024, 1, 1),
+                end_date=date(2024, 6, 30),
+            )
+
+    def test_empty_params_uses_defaults(self) -> None:
+        """Empty params dict should be accepted (strategy uses defaults)."""
+        req = BacktestCreateRequest(
+            strategy_name="bollinger_reversion",
+            symbols=["AAPL"],
+            parameters={},
+            start_date=date(2024, 1, 1),
+            end_date=date(2024, 6, 30),
+        )
+
+        assert req.parameters == {}

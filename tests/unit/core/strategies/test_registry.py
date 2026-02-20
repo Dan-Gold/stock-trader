@@ -26,11 +26,13 @@ class TestGetParamsModel:
     """Tests for get_params_model lookup."""
 
     def test_returns_bollinger_params(self) -> None:
+        """Registered strategy names should return the correct params model."""
         model = get_params_model("bollinger_reversion")
 
         assert model is BollingerParams
 
     def test_raises_for_unknown_strategy(self) -> None:
+        """Unknown strategy names should raise a ValueError."""
         with pytest.raises(ValueError, match="Unknown strategy"):
             get_params_model("nonexistent")
 

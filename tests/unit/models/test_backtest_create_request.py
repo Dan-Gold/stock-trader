@@ -134,6 +134,7 @@ class TestParameterValidation:
             )
 
     def test_invalid_exit_at_raises(self) -> None:
+        """An invalid exit_at value should fail validation."""
         with pytest.raises(ValidationError, match="Input should be 'middle' or 'upper'"):
             BacktestCreateRequest(
                 strategy_name="bollinger_reversion",

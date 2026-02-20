@@ -12,6 +12,7 @@ class TestBollingerParams:
     """Tests for BollingerParams validation."""
 
     def test_defaults(self) -> None:
+        """Default values should be set correctly when no args are provided."""
         params = BollingerParams()
 
         assert params.length == 20
@@ -20,6 +21,7 @@ class TestBollingerParams:
         assert params.initial_capital == 10000.0
 
     def test_custom_values(self) -> None:
+        """Custom values should be accepted and set correctly."""
         params = BollingerParams(length=10, std_dev=1.5, exit_at="upper", initial_capital=50000)
 
         assert params.length == 10
@@ -28,25 +30,29 @@ class TestBollingerParams:
         assert params.initial_capital == 50000.0
 
     def test_invalid_exit_at_raises(self) -> None:
+        """Invalid exit_at values should raise a ValidationError."""
         with pytest.raises(ValidationError, match="Input should be 'middle' or 'upper'"):
             BollingerParams(exit_at="invalid")
 
     def test_length_below_minimum_raises(self) -> None:
+        """Length values below the minimum should raise a ValidationError."""
         with pytest.raises(ValidationError, match="greater than or equal to 5"):
             BollingerParams(length=2)
 
     def test_std_dev_zero_raises(self) -> None:
+        """Standard deviation of zero should raise a ValidationError."""
         with pytest.raises(ValidationError, match="greater than 0"):
             BollingerParams(std_dev=0)
 
     def test_negative_capital_raises(self) -> None:
+        """Negative initial capital should raise a ValidationError."""
         with pytest.raises(ValidationError, match="greater than 0"):
             BollingerParams(initial_capital=-100)
 
     def test_unknown_param_raises(self) -> None:
         """Extra keys should be rejected."""
         with pytest.raises(ValidationError, match="Extra inputs"):
-            BollingerParams(length=20, unknown_key="oops")
+            BollingerParams(length=20, unknown_key="oops")  # type: ignore[call-arg]
 
     def test_coerces_float_length_to_int(self) -> None:
         """JSON round-trips may produce float for int fields; Pydantic should coerce."""
@@ -74,6 +80,7 @@ class TestBollingerInit:
         assert strategy.length == 15
 
     def test_defaults_without_args(self) -> None:
+        """Constructor with no args should use all default parameter values."""
         strategy = BollingerReversionStrategy()
 
         assert strategy.length == 20

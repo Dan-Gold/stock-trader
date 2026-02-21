@@ -1,6 +1,6 @@
 """Strategy registry and lookup function."""
 
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 from pydantic import BaseModel
 
@@ -45,3 +45,20 @@ def get_params_model(name: str) -> type[BaseModel]:
         available = ", ".join(STRATEGY_REGISTRY.keys())
         raise ValueError(f"Unknown strategy '{name}'. Available: {available}")
     return entry.params_model
+
+
+def get_strategies() -> list[str]:
+    """Get a list of registered strategy names."""
+    return list(STRATEGY_REGISTRY.keys())
+
+
+def get_strategy_schema(name: str) -> dict[str, Any]:
+    """Get the full JSON Schema for a strategy's parameters.
+
+    Includes types, constraints (min/max/enum), defaults, and descriptions.
+
+    Raises:
+        ValueError: If the strategy name isn't registered.
+    """
+    params_model_cls = get_params_model(name)
+    return params_model_cls.model_json_schema()

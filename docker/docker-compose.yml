@@ -2,7 +2,6 @@ services:
 
     # Stock Trader Base
   stock_trader_base:
-    container_name: stock_trader_base
     image: stock_trader
     build:
       context: ../
@@ -43,18 +42,19 @@ services:
 
   # Celery Worker ~ CPU-bound backtest tasks (prefork pool)
   stock_trader_worker:
-    container_name: stock_trader_worker
     command: >-
       python -m celery -A stock_trader.worker.celery_app:celery_app worker
       -Q backtest_queue
       --pool prefork
-      --concurrency 2
+      --concurrency 1
     depends_on:
       stock_trader_db_init:
         condition: service_completed_successfully
     restart: unless-stopped
     extends:
       service: stock_trader_base
+    deploy:
+      replicas: 3
 
   # Celery Worker ~ I/O-bound fetch tasks (gevent pool)
   stock_trader_fetch_worker:

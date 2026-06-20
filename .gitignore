@@ -8,6 +8,7 @@ __pycache__
 .vscode/
 .claude/
 CLAUDE.md
+.orchestration/
 .github/
 .serena/
 tools/

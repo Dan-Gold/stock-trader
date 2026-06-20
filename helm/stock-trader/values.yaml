@@ -1,0 +1,276 @@
+# ==============================================================================
+# Stock Trader Helm Values
+# ==============================================================================
+
+# -- Global image settings
+image:
+  repository: stock_trader
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# ==============================================================================
+# Application Environment Config
+# ==============================================================================
+config:
+  logLevel: "20"
+
+  # Database (references the PostgreSQL subchart by default)
+  db:
+    username: postgres
+    name: stock_trader_db
+    host: ""          # auto-resolved to subchart service if empty
+    port: "5432"
+
+  # Redis (references the Redis subchart by default)
+  redis:
+    host: ""          # auto-resolved to subchart service if empty
+    port: "6379"
+    db: "2"
+    ttl: "3600"
+
+  # Celery
+  celery:
+    brokerRedisDb: "0"
+    backendRedisDb: "1"
+    taskResultTtl: "3600"
+
+# Sensitive values — set via --set or a sealed-secret in production
+secrets:
+  dbPassword: postgres
+  massiveApiKey: ""
+
+# ==============================================================================
+# API Server
+# ==============================================================================
+api:
+  enabled: true
+  replicaCount: 1
+
+  command:
+    - uvicorn
+    - stock_trader.entrypoints.api_server:server
+    - --host
+    - "0.0.0.0"
+    - --port
+    - "8000"
+
+  service:
+    type: ClusterIP
+    port: 8000
+
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+      # kubernetes.io/ingress.class: nginx
+      # cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - host: stock-trader.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+    #  - secretName: stock-trader-tls
+    #    hosts:
+    #      - stock-trader.local
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ==============================================================================
+# Celery — Backtest Worker (CPU-bound, prefork)
+# ==============================================================================
+backtestWorker:
+  enabled: true
+  replicaCount: 3
+
+  command:
+    - python
+    - -m
+    - celery
+    - -A
+    - stock_trader.worker.celery_app:celery_app
+    - worker
+    - -Q
+    - backtest_queue
+    - --pool
+    - prefork
+    - --concurrency
+    - "1"
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ==============================================================================
+# Celery — Fetch Worker (I/O-bound, gevent)
+# ==============================================================================
+fetchWorker:
+  enabled: true
+  replicaCount: 1
+
+  command:
+    - python
+    - -m
+    - celery
+    - -A
+    - stock_trader.worker.celery_app:celery_app
+    - worker
+    - -Q
+    - fetch_queue
+    - --pool
+    - gevent
+    - --concurrency
+    - "4"
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ==============================================================================
+# Flower — Celery Monitoring
+# ==============================================================================
+flower:
+  enabled: true
+  replicaCount: 1
+
+  command:
+    - python
+    - -m
+    - celery
+    - -A
+    - stock_trader.worker.celery_app:celery_app
+    - flower
+    - --port=5555
+
+  service:
+    type: ClusterIP
+    port: 5555
+
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: flower.stock-trader.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ==============================================================================
+# Database Migration Job (runs as a post-install/upgrade hook)
+# ==============================================================================
+dbInit:
+  enabled: true
+  backoffLimit: 3
+
+  command:
+    - python
+    - -m
+    - stock_trader.db.migrations.create_database
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+# ==============================================================================
+# PostgreSQL (self-hosted, official image)
+# ==============================================================================
+postgres:
+  enabled: true
+
+  image:
+    repository: postgres
+    tag: "18"
+    pullPolicy: IfNotPresent
+
+  persistence:
+    size: 5Gi
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ==============================================================================
+# Redis (self-hosted, official image)
+# ==============================================================================
+redis:
+  enabled: true
+
+  image:
+    repository: redis
+    tag: "8"
+    pullPolicy: IfNotPresent
+
+  persistence:
+    size: 2Gi
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}

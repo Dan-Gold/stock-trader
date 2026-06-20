@@ -1,6 +1,6 @@
 services:
   redis:
-    image: redis:8.4.0  # Latest stable Redis (Nov 2025)
+    image: redis:8.8.0  # Latest stable Redis (Jun 2026)
     container_name: redis
     ports:
       - "6379:6379"

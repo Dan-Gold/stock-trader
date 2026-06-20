@@ -1,0 +1,75 @@
+{{- if .Values.flower.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "stock-trader.fullname" . }}-flower
+  labels:
+    {{- include "stock-trader.labels" . | nindent 4 }}
+    {{- include "stock-trader.selectorLabels" (dict "context" . "component" "flower") | nindent 4 }}
+spec:
+  replicas: {{ .Values.flower.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "stock-trader.selectorLabels" (dict "context" . "component" "flower") | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.flower.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "stock-trader.labels" . | nindent 8 }}
+        {{- include "stock-trader.selectorLabels" (dict "context" . "component" "flower") | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: flower
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            {{- toYaml .Values.flower.command | nindent 12 }}
+          envFrom:
+            {{- include "stock-trader.envFrom" . | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 5555
+              protocol: TCP
+          # Importing celery/billiard is slow without bytecode caching
+          # (PYTHONDONTWRITEBYTECODE=1) — give it real startup budget before
+          # liveness/readiness probes start enforcing their tighter cadence.
+          startupProbe:
+            httpGet:
+              path: /healthcheck
+              port: http
+            periodSeconds: 10
+            failureThreshold: 60
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: http
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: http
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.flower.resources | nindent 12 }}
+      {{- with .Values.flower.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.flower.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.flower.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

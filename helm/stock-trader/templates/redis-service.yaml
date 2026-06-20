@@ -1,0 +1,18 @@
+{{- if .Values.redis.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "stock-trader.fullname" . }}-redis
+  labels:
+    {{- include "stock-trader.labels" . | nindent 4 }}
+    {{- include "stock-trader.selectorLabels" (dict "context" . "component" "redis") | nindent 4 }}
+spec:
+  clusterIP: None
+  ports:
+    - port: 6379
+      targetPort: redis
+      protocol: TCP
+      name: redis
+  selector:
+    {{- include "stock-trader.selectorLabels" (dict "context" . "component" "redis") | nindent 4 }}
+{{- end }}

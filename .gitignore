@@ -4,3 +4,11 @@ archive/
 *.csv
 launch.json
 __pycache__
+
+.vscode/
+.claude/
+CLAUDE.md
+.github/
+.serena/
+tools/
+.mcp.json

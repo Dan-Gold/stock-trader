@@ -8,37 +8,37 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.13"
-matplotlib = "3.9.2"
+matplotlib = "3.11.0"
 pandas = "2.3.3"
 pandas-ta = "^0.4.71b0"
-requests = "2.32.3"
-python-dotenv = "1.0.1"
-alembic = "1.18.0"
-sqlalchemy = "2.0.45"
+requests = "2.34.2"
+python-dotenv = "1.2.2"
+alembic = "1.18.4"
+sqlalchemy = "2.0.51"
 SQLAlchemy-Utils = "0.42.1"
 asyncpg = "0.31.0"
-psycopg2-binary = "2.9.11"
-fastapi = "0.128.0"
-pydantic = "2.12.5"
-pydantic-settings = "2.12.0"
-uvicorn = "0.40.0"
-redis = "6.2.0"
-celery = {version = "5.6.2", extras = ["redis"]}
+psycopg2-binary = "2.9.12"
+fastapi = "0.138.0"
+pydantic = "2.13.4"
+pydantic-settings = "2.14.2"
+uvicorn = "0.49.0"
+redis = "6.4.0"
+celery = {version = "5.6.3", extras = ["redis"]}
 flower = "^2.0.1"
 gevent = "^25.9.1"
 massive = "^2.2.0"
 
 [tool.poetry.group.test.dependencies]
 mypy = "1.19.1"
-ruff = "0.14.10"
+ruff = "0.15.18"
 pytest = "^8.3.0"
 pytest-asyncio = "^0.25.0"
 pytest-cov = "^6.1.0"
-types-requests = "2.32.0.20241016"
+types-requests = "2.33.0.20260518"
 pandas-stubs = "2.2.3.241126"
 
 [tool.poetry.group.dev.dependencies]
-debugpy = "1.8.11"
+debugpy = "1.8.21"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

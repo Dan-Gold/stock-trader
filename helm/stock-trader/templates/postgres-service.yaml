@@ -1,0 +1,18 @@
+{{- if .Values.postgres.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "stock-trader.fullname" . }}-postgres
+  labels:
+    {{- include "stock-trader.labels" . | nindent 4 }}
+    {{- include "stock-trader.selectorLabels" (dict "context" . "component" "postgres") | nindent 4 }}
+spec:
+  clusterIP: None
+  ports:
+    - port: 5432
+      targetPort: postgres
+      protocol: TCP
+      name: postgres
+  selector:
+    {{- include "stock-trader.selectorLabels" (dict "context" . "component" "postgres") | nindent 4 }}
+{{- end }}

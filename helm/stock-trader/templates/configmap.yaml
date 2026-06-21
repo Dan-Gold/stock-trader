@@ -24,3 +24,7 @@ data:
   CELERY_BROKER_REDIS_DB: {{ .Values.config.celery.brokerRedisDb | quote }}
   CELERY_BACKEND_REDIS_DB: {{ .Values.config.celery.backendRedisDb | quote }}
   CELERY_TASK_RESULT_TTL: {{ .Values.config.celery.taskResultTtl | quote }}
+  # Massive rate limiter
+  MASSIVE_RATE_MAX_REQUESTS: {{ .Values.config.rateLimit.maxRequests | quote }}
+  MASSIVE_RATE_WINDOW_SECONDS: {{ .Values.config.rateLimit.windowSeconds | quote }}
+  RATELIMIT_FAIL_OPEN: {{ .Values.config.rateLimit.failOpen | quote }}

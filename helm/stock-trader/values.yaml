@@ -38,6 +38,12 @@ config:
     backendRedisDb: "1"
     taskResultTtl: "3600"
 
+  # Massive API rate limiter (Redis-backed, cross-process)
+  rateLimit:
+    maxRequests: "5"      # requests allowed per window
+    windowSeconds: "60"   # sliding-window size
+    failOpen: "false"     # false = fail-closed (raise on Redis error)
+
 # Sensitive values — set via --set or a sealed-secret in production
 secrets:
   dbPassword: postgres

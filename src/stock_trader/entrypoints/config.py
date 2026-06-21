@@ -27,6 +27,11 @@ class StockTraderConfig(BaseSettings):
     # Massive (formerly Polygon.io) API
     massive_api_key: str
 
+    # Massive rate limiting (cross-process, Redis-backed)
+    massive_rate_max_requests: int = 5
+    massive_rate_window_seconds: int = 60
+    ratelimit_fail_open: bool = False  # fail-closed: raise on Redis error
+
     # Celery Config
     celery_broker_redis_db: int
     celery_backend_redis_db: int

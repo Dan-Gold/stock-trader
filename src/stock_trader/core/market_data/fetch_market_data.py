@@ -4,15 +4,16 @@ import logging
 from uuid import UUID
 
 from celery import Task, shared_task
+from redis.exceptions import RedisError
 
 from stock_trader.core.market_data.market_data_service import MarketDataService
 from stock_trader.core.market_data.providers.market_data_provider_interface import ProviderError
 from stock_trader.core.market_data.providers.massive.provider import MassiveProvider
-from stock_trader.core.market_data.providers.massive.rate_limiter import MassiveRateLimiter
 from stock_trader.db.db_engine import get_sync_session_maker
 from stock_trader.db.repositories.market_data_repo import MarketDataRepositorySync
 from stock_trader.db.repositories.worker_repo import BacktestRepositorySync
 from stock_trader.entrypoints.config import get_config
+from stock_trader.infrastructure.redis_rate_limiter import build_massive_rate_limiter
 from stock_trader.models.shared_enums import BacktestStatusEnum, IntervalEnum
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,9 @@ def _on_fetch_failure(task: Task, exc: Exception, task_id: str, args: tuple, kwa
     name="fetch_market_data",
     max_retries=3,
     default_retry_delay=65,
-    autoretry_for=(ProviderError,),
+    # RedisError: the rate limiter fails closed (raises) on a Redis error; retry
+    # so a transient blip does not permanently fail the job.
+    autoretry_for=(ProviderError, RedisError),
     on_failure=_on_fetch_failure,
 )
 def fetch_market_data(job_id: str) -> str:
@@ -77,13 +80,13 @@ def fetch_market_data(job_id: str) -> str:
 def _build_market_data_service() -> MarketDataService:
     """Build the MarketDataService with all dependencies.
 
-    Called once per task execution. The rate limiter is in-memory,
-    which works because worker_concurrency=1.
+    Called once per task execution. The rate limiter is Redis-backed so the
+    Massive free-tier budget is shared across all worker processes and greenlets.
     """
     config = get_config()
 
     provider = MassiveProvider(api_key=config.massive_api_key)
-    rate_limiter = MassiveRateLimiter()
+    rate_limiter = build_massive_rate_limiter()
     market_data_repo = MarketDataRepositorySync(get_sync_session_maker())
 
     return MarketDataService(

@@ -120,9 +120,7 @@ class RedisSlidingWindowRateLimiter(IRateLimiter):
                 # KEYS[1] = the shared limiter key; ARGV = [max_requests, window_ms,
                 # unique member]. Returns 0 if a slot was reserved, else the ms to
                 # wait until the oldest entry leaves the window.
-                wait_ms = int(
-                    self._script(keys=[self._key], args=[self._max_requests, self._window_ms, member])
-                )
+                wait_ms = int(self._script(keys=[self._key], args=[self._max_requests, self._window_ms, member]))
 
             except redis.RedisError:
                 if self._fail_open:

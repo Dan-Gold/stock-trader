@@ -1,6 +1,6 @@
 """Repository for market data access."""
 
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
@@ -27,7 +27,7 @@ class MarketDataRepositorySync:
                 .where(MarketDataTableSchema.symbol == symbol)
                 .where(MarketDataTableSchema.interval == interval)
                 .where(MarketDataTableSchema.timestamp >= start_time)
-                .where(MarketDataTableSchema.timestamp <= end_time)
+                .where(MarketDataTableSchema.timestamp < end_time + timedelta(days=1))
                 .order_by(MarketDataTableSchema.timestamp.asc())
             )
             result = session.execute(query).scalars().all()

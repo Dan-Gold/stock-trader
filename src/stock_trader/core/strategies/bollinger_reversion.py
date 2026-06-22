@@ -1,12 +1,14 @@
 """Bollinger Band mean reversion strategy implementation."""
 
-from typing import Literal
+from typing import Literal, cast
 
+import numpy as np
 import pandas as pd
 import pandas_ta as ta
 from pydantic import BaseModel, ConfigDict, Field
 
 from stock_trader.core.strategies.models import BacktestResult, SignalType, Trade, calculate_metrics
+from stock_trader.core.utils import regular_session_mask
 
 
 class BollingerParams(BaseModel):
@@ -43,11 +45,13 @@ class BollingerReversionStrategy:
 
         self._params = params.model_dump()
 
-    def run(self, df: pd.DataFrame) -> BacktestResult:
-        """Run Bollinger Band mean reversion against price data."""
-        df = df.copy()
+    def _apply_bands(self, df: pd.DataFrame) -> list[str]:
+        """Add bb_lower/bb_middle/bb_upper columns to ``df`` and return their names.
 
-        # --- Step 1: Calculate Bollinger Bands via pandas-ta ---
+        Raises:
+            ValueError: If pandas-ta cannot produce bands (e.g. too few rows) or
+                an expected band column is missing from its output.
+        """
         bbands = ta.bbands(df["close"], length=self.length, std=self.std_dev)  # type: ignore[arg-type]
         if bbands is None:
             raise ValueError(f"pandas-ta returned None for bbands. Check that df has at least {self.length} rows.")
@@ -65,16 +69,31 @@ class BollingerReversionStrategy:
         df["bb_middle"] = bbands[col_map["BBM"]]
         df["bb_upper"] = bbands[col_map["BBU"]]
 
-        indicator_columns = ["bb_lower", "bb_middle", "bb_upper"]
+        return ["bb_lower", "bb_middle", "bb_upper"]
+
+    def run(self, df: pd.DataFrame) -> BacktestResult:
+        """Run Bollinger Band mean reversion against price data."""
+        df = df.copy()
+
+        # --- Step 1: Calculate Bollinger Bands via pandas-ta ---
+        indicator_columns = self._apply_bands(df)
 
         # --- Step 2: Generate signals ---
         trades: list[Trade] = []
         in_position = False
 
+        # Only emit trades during the regular session. Bands are still computed
+        # over the full df above, so extended-hours bars inform the indicators
+        # without being tradeable. Computed once and reused by the forced exit.
+        session_mask = regular_session_mask(cast(pd.DatetimeIndex, df.index))
+
         # Determine which band to use for exit
         exit_col = "bb_middle" if self.exit_at == "middle" else "bb_upper"
 
         for i in range(self.length, len(df)):
+            if not session_mask[i]:
+                continue
+
             row = df.iloc[i]
             close = row["close"]
             timestamp = df.index[i]
@@ -104,17 +123,21 @@ class BollingerReversionStrategy:
                         )
                     )
 
-        # Force sell at end of data if still in position
+        # Force sell at end of data if still in position. Exit on the last
+        # in-session bar so the position is never closed at an extended-hours price.
         if in_position:
-            last_row = df.iloc[-1]
-            trades.append(
-                Trade(
-                    timestamp=df.index[-1],
-                    signal=SignalType.SELL,
-                    price=last_row["close"],
-                    reason="End of data, forced exit",
+            session_positions = np.flatnonzero(session_mask)
+            if session_positions.size > 0:
+                exit_i = int(session_positions[-1])
+                exit_row = df.iloc[exit_i]
+                trades.append(
+                    Trade(
+                        timestamp=df.index[exit_i],
+                        signal=SignalType.SELL,
+                        price=exit_row["close"],
+                        reason="End of data, forced exit",
+                    )
                 )
-            )
 
         # --- Step 3: Calculate metrics ---
         metrics = calculate_metrics(trades=trades, initial_capital=self.initial_capital)

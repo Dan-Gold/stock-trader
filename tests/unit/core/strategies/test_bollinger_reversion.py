@@ -1,11 +1,17 @@
 """Unit tests for BollingerReversionStrategy."""
 
+from datetime import time
+from zoneinfo import ZoneInfo
+
+import numpy as np
 import pytest
 from pydantic import ValidationError
 
 from stock_trader.core.strategies.bollinger_reversion import BollingerParams, BollingerReversionStrategy
 from stock_trader.core.strategies.models import SignalType
 from tests.helpers import flat_then_dip_then_revert, make_ohlcv_df
+
+ET = ZoneInfo("America/New_York")
 
 
 class TestBollingerParams:
@@ -207,3 +213,60 @@ class TestBollingerRun:
         assert result.metrics.num_trades > 0, "Expected at least one round-trip trade"
         assert result.metrics.win_rate > 0
         assert result.metrics.ending_capital > 0
+
+
+class TestBollingerMarketHours:
+    """Tests that trading is restricted to the regular session (09:30-16:00 ET)."""
+
+    @staticmethod
+    def _oscillating(n: int, *, seed: int = 42) -> list[float]:
+        """Flat-ish prices with enough width that the Bollinger bands are non-trivial."""
+        rng = np.random.default_rng(seed)
+        return (100.0 + rng.normal(0, 1.5, n)).tolist()
+
+    def test_no_trades_on_after_hours_signal(self) -> None:
+        """A dip below the lower band that occurs after 16:00 ET must not trade."""
+        # 30 in-session warmup bars (15:30-15:59 ET), then a dip during after-hours.
+        prices = [*self._oscillating(30), 80.0, 80.0, 80.0]
+        df = make_ohlcv_df(prices, start="2024-01-02 15:30")
+
+        result = BollingerReversionStrategy(length=20).run(df)
+
+        assert result.trades == [], "Signals outside the regular session must be ignored"
+
+    def test_indicators_computed_on_extended_hours_rows(self) -> None:
+        """Bands are still computed over extended-hours bars, even though they don't trade."""
+        prices = [*self._oscillating(30), 80.0, 80.0, 80.0]
+        df = make_ohlcv_df(prices, start="2024-01-02 15:30")
+
+        result = BollingerReversionStrategy(length=20).run(df)
+
+        after_hours = result.chart_data.index.tz_convert(ET).time >= time(16, 0)
+        assert after_hours.any(), "Test fixture should include after-hours rows"
+        assert result.chart_data.loc[after_hours, "bb_middle"].notna().any()
+
+    def test_forced_exit_uses_last_in_session_bar(self) -> None:
+        """A position held into after-hours is force-closed on the last in-session bar."""
+        # BUY fires in-session, price stays low (no revert) through after-hours.
+        prices = [*self._oscillating(21), *([80.0] * 14)]
+        df = make_ohlcv_df(prices, start="2024-01-02 15:30")
+
+        result = BollingerReversionStrategy(length=20).run(df)
+
+        assert len(result.trades) >= 2, "Expected a BUY then a forced SELL"
+        last_trade = result.trades[-1]
+        assert last_trade.signal == SignalType.SELL
+        exit_et = last_trade.timestamp.astimezone(ET).time()
+        assert exit_et == time(15, 59), "Forced exit should land on the last regular-session bar"
+
+    def test_all_trades_fall_inside_regular_session(self) -> None:
+        """Every emitted trade timestamp is within 09:30-16:00 ET."""
+        prices = flat_then_dip_then_revert(dip_price=80.0, revert_price=100.0)
+        df = make_ohlcv_df(prices)
+
+        result = BollingerReversionStrategy().run(df)
+
+        assert result.trades, "Expected at least one in-session trade"
+        for trade in result.trades:
+            et = trade.timestamp.astimezone(ET).time()
+            assert time(9, 30) <= et < time(16, 0)

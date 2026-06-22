@@ -52,13 +52,22 @@ def build_service(
     )
 
 
-def make_ohlcv_df(close_prices: list[float], *, start: str = "2024-01-01") -> pd.DataFrame:
-    """Build a minimal OHLCV DataFrame from a list of close prices.
+def make_ohlcv_df(
+    close_prices: list[float],
+    *,
+    start: str = "2024-01-02 09:30",
+    tz: str = "America/New_York",
+    freq: str = "min",
+) -> pd.DataFrame:
+    """Build a minimal intraday OHLCV DataFrame from a list of close prices.
 
-    High/low/open are set equal to close for simplicity, the strategy
-    only uses the close column.
+    Produces tz-aware 1-minute bars starting at the regular-session open, matching
+    the production data shape (the strategy is intraday and gates on market hours,
+    so bars must be tz-aware and within the session to be tradeable).
+    High/low/open are set equal to close for simplicity, the strategy only uses
+    the close column.
     """
-    dates = pd.date_range(start, periods=len(close_prices), freq="D")
+    dates = pd.date_range(start, periods=len(close_prices), freq=freq, tz=tz)
     df = pd.DataFrame(
         {
             "open": close_prices,

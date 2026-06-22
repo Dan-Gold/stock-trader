@@ -41,6 +41,16 @@ class TestToDataframe:
 
         assert df.index.name == "timestamp"
 
+    def test_index_is_tz_aware(self) -> None:
+        """The index must stay tz-aware so downstream market-hours gating is correct.
+
+        A tz-naive index would be misread as system-local time by the session
+        gate (see core.utils.regular_session_mask).
+        """
+        df = make_ohlcv_series().to_dataframe()
+
+        assert df.index.tz is not None
+
     def test_rows_match_bar_count(self) -> None:
         """The number of rows in the dataframe should match the number of bars."""
         df = make_ohlcv_series().to_dataframe()

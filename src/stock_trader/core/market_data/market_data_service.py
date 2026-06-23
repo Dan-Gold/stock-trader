@@ -12,6 +12,18 @@ from stock_trader.models.shared_enums import IntervalEnum
 logger = logging.getLogger(__name__)
 
 
+class NoDataError(ValueError):
+    """Neither the DB nor the provider returned data for the requested range.
+
+    Subclasses ``ValueError`` so existing callers (and the global
+    ``ValueError -> 400`` handler) keep their current behaviour, while giving
+    callers a typed exception to catch narrowly. Catching this instead of bare
+    ``ValueError`` avoids swallowing unrelated ``ValueError`` subclasses such as
+    a ``pydantic.ValidationError`` raised reconstructing a corrupt DB row
+    (``get_ohlcv_data`` -> ``from_records``).
+    """
+
+
 class MarketDataService:
     """Orchestrates market data retrieval: DB first, provider on miss.
 
@@ -56,12 +68,12 @@ class MarketDataService:
 
         Raises:
             ProviderError: If the external API call fails.
-            ValueError: If no data is returned from either DB or provider.
+            NoDataError: If no data is returned from either DB or provider.
         """
         # 1. Check DB
         existing = self.repo.get_ohlcv_data(symbol=symbol, start_time=start_date, end_time=end_date, interval=interval)
 
-        if existing and len(existing) > 0:
+        if existing:  # OHLCVSeries.__bool__ is len(bars) > 0
             logger.info("DB hit: %d bars for %s (%s to %s)", len(existing), symbol, start_date, end_date)
             return existing
 
@@ -74,7 +86,7 @@ class MarketDataService:
         series = self.provider.fetch_ohlcv(symbol=symbol, interval=interval, start_date=start_date, end_date=end_date)
 
         if not series or len(series) == 0:
-            raise ValueError(f"No data returned for {symbol} ({start_date} to {end_date})")
+            raise NoDataError(f"No data returned for {symbol} ({start_date} to {end_date})")
 
         # 3. Save to DB
         self.repo.bulk_insert_market_data(series)

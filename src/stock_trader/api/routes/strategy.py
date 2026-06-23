@@ -16,6 +16,7 @@ router = APIRouter(prefix="/strategies", tags=["strategy"])
 
 @router.get(
     "/available",
+    operation_id="get_available_strategies",
     response_model=list[str],
     summary="Get available strategy names",
 )
@@ -30,6 +31,7 @@ async def get_available_strategies() -> list[str]:
 
 @router.get(
     "/{strategy_name}/schema",
+    operation_id="get_strategy_parameter_schema",
     summary="Get full parameter schema with constraints",
 )
 async def get_strategy_parameter_schema(strategy_name: str) -> dict:
@@ -48,6 +50,7 @@ async def get_strategy_parameter_schema(strategy_name: str) -> dict:
 
 @router.get(
     "/all_strategies_all_parameters",
+    operation_id="get_all_strategies_and_parameters",
     summary="Get parameter schemas for all strategies",
 )
 async def get_all_strategies_and_parameters() -> dict[str, dict]:

@@ -3,10 +3,11 @@
 import logging
 from collections.abc import Awaitable, Callable
 
+from celery.exceptions import TimeoutError as CeleryTimeoutError
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-from stock_trader.models.exceptions import JobAlreadyRunningError, JobNotFoundError
+from stock_trader.models.exceptions import JobAlreadyRunningError, JobNotFoundError, RangeValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,8 @@ SIMPLE_EXCEPTION_HANDLERS: dict[type[Exception], int] = {
     ValueError: status.HTTP_400_BAD_REQUEST,
     JobNotFoundError: status.HTTP_404_NOT_FOUND,
     JobAlreadyRunningError: status.HTTP_409_CONFLICT,
+    RangeValidationError: status.HTTP_400_BAD_REQUEST,
+    CeleryTimeoutError: status.HTTP_504_GATEWAY_TIMEOUT,
 }
 
 TRACEBACK_EXCEPTION_HANDLERS: dict[type[Exception], int] = {

@@ -23,6 +23,7 @@ router = APIRouter(prefix="/backtests", tags=["backtests"])
 
 @router.post(
     "",
+    operation_id="create_backtest",
     response_model=BacktestCreateResponse,
     status_code=status.HTTP_202_ACCEPTED,
     summary="Create a new backtest job",
@@ -48,6 +49,7 @@ async def create_backtest(
 
 @router.get(
     "/{job_id}",
+    operation_id="get_backtest",
     response_model=BacktestResponse,
     summary="Get backtest job details",
 )
@@ -68,7 +70,7 @@ async def get_backtest(job_id: UUID, backtest_service: BacktestService = Depends
     return BacktestResponse.from_job(job)
 
 
-@router.put("/{job_id}/run", summary="Dispatch backtest job")
+@router.put("/{job_id}/run", operation_id="dispatch_backtest", summary="Dispatch backtest job")
 async def dispatch_backtest(job_id: UUID, backtest_service: BacktestService = Depends(get_backtest_service)) -> None:  # noqa: B008
     """Dispatch a backtest job to celery for processing.
 
@@ -90,6 +92,7 @@ async def dispatch_backtest(job_id: UUID, backtest_service: BacktestService = De
 
 @router.get(
     "",
+    operation_id="list_backtests",
     response_model=list[BacktestResponse],
     summary="List backtest jobs",
 )

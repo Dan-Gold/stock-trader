@@ -2,6 +2,8 @@
 
 from datetime import datetime, timezone
 
+import pandas as pd
+
 from tests.helpers import make_ohlcv_bar, make_ohlcv_series
 
 
@@ -49,6 +51,7 @@ class TestToDataframe:
         """
         df = make_ohlcv_series().to_dataframe()
 
+        assert isinstance(df.index, pd.DatetimeIndex)
         assert df.index.tz is not None
 
     def test_rows_match_bar_count(self) -> None:

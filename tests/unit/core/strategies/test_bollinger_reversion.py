@@ -4,6 +4,7 @@ from datetime import time
 from zoneinfo import ZoneInfo
 
 import numpy as np
+import pandas as pd
 import pytest
 from pydantic import ValidationError
 
@@ -241,7 +242,9 @@ class TestBollingerMarketHours:
 
         result = BollingerReversionStrategy(length=20).run(df)
 
-        after_hours = result.chart_data.index.tz_convert(ET).time >= time(16, 0)
+        index = result.chart_data.index
+        assert isinstance(index, pd.DatetimeIndex)
+        after_hours = index.tz_convert(ET).time >= time(16, 0)
         assert after_hours.any(), "Test fixture should include after-hours rows"
         assert result.chart_data.loc[after_hours, "bb_middle"].notna().any()
 

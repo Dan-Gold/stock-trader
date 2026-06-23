@@ -32,6 +32,10 @@ class StockTraderConfig(BaseSettings):
     massive_rate_window_seconds: int = 60
     ratelimit_fail_open: bool = False  # fail-closed: raise on Redis error
 
+    # Market-data fetch endpoint: max seconds the HTTP request waits on the
+    # fetch worker before returning 504 (the task keeps running in background).
+    market_data_fetch_timeout: float = 120.0
+
     # Celery Config
     celery_broker_redis_db: int
     celery_backend_redis_db: int

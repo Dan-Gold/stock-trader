@@ -5,7 +5,10 @@ from celery.signals import after_setup_logger, after_setup_task_logger
 from kombu import Exchange, Queue
 
 from stock_trader.core.backtest import finalize_backtest_job, run_backtest  # noqa: F401, register tasks with Celery
-from stock_trader.core.market_data.fetch_market_data import fetch_market_data  # noqa: F401, register tasks with Celery
+from stock_trader.core.market_data.market_data_tasks import (  # noqa: F401, register tasks with Celery
+    ensure_market_data_for_job,
+    ensure_market_data_for_symbol,
+)
 from stock_trader.entrypoints.config import get_config
 from stock_trader.log_config import setup_logging
 
@@ -17,7 +20,8 @@ TASK_QUEUES = (
 )
 
 TASK_ROUTES = {
-    "fetch_market_data": {"queue": "fetch_queue", "routing_key": "fetch.task"},
+    "ensure_market_data_for_job": {"queue": "fetch_queue", "routing_key": "fetch.task"},
+    "ensure_market_data_for_symbol": {"queue": "fetch_queue", "routing_key": "fetch.task"},
     "run_backtest": {"queue": "backtest_queue", "routing_key": "backtest.task"},
     "stock_trader.core.backtest.finalize_backtest_job": {"queue": "backtest_queue", "routing_key": "backtest.task"},
 }

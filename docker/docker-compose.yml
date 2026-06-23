@@ -47,6 +47,7 @@ services:
       -Q backtest_queue
       --pool prefork
       --concurrency 1
+      -n backtest-worker@%h
     depends_on:
       stock_trader_db_init:
         condition: service_completed_successfully
@@ -64,6 +65,7 @@ services:
       -Q fetch_queue
       --pool gevent
       --concurrency 4
+      -n fetch-worker@%h
     depends_on:
       stock_trader_db_init:
         condition: service_completed_successfully

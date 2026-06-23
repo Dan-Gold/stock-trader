@@ -5,6 +5,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi_mcp import FastApiMCP
 
 import stock_trader.worker.celery_app  # noqa: F401, configure Celery broker for task dispatch
 from stock_trader.api.exception_handlers import add_exception_handlers
@@ -51,3 +52,10 @@ server = FastAPI(title="Stock Trader API", lifespan=lifespan)
 server.include_router(backtest_router)
 server.include_router(health_router)
 add_exception_handlers(server)
+
+# Expose the API as an MCP server at /mcp for LAN-local Claude clients. Built
+# after routers are registered so it reflects the current routes; debug/health
+# are excluded by tag. mount_http() uses the Streamable HTTP transport (mount()
+# is the deprecated SSE transport).
+mcp = FastApiMCP(server, name="Stock Trader MCP", exclude_tags=["debug", "health"])
+mcp.mount_http()

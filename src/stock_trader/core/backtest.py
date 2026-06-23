@@ -54,7 +54,7 @@ def run_backtest(job_id: str, symbol: str) -> dict:
 
         # ------------------------------------------------------------------
         # Step 2: Load historical price data from the database.
-        #         Data was fetched by the upstream fetch_market_data task.
+        #         Data was fetched by the upstream ensure_market_data_for_job task.
         # ------------------------------------------------------------------
         ohlcv = market_data_repo.get_ohlcv_data(
             symbol=symbol,

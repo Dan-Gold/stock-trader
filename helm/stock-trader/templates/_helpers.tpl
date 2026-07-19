@@ -56,8 +56,10 @@ postgres Service name (see postgres-service.yaml).
 {{- define "stock-trader.dbHost" -}}
 {{- if .Values.config.db.host }}
 {{- .Values.config.db.host }}
-{{- else }}
+{{- else if .Values.postgres.enabled }}
 {{- printf "%s-postgres" (include "stock-trader.fullname" .) }}
+{{- else }}
+{{- fail "config.db.host is required when postgres.enabled=false (shared-infra deploy must point at the shared Postgres server)" }}
 {{- end }}
 {{- end }}
 
@@ -69,8 +71,10 @@ redis Service name (see redis-service.yaml).
 {{- define "stock-trader.redisHost" -}}
 {{- if .Values.config.redis.host }}
 {{- .Values.config.redis.host }}
-{{- else }}
+{{- else if .Values.redis.enabled }}
 {{- printf "%s-redis" (include "stock-trader.fullname" .) }}
+{{- else }}
+{{- fail "config.redis.host is required when redis.enabled=false (shared-infra deploy must point at the shared Redis server)" }}
 {{- end }}
 {{- end }}
 

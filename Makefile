@@ -40,6 +40,10 @@ dev-up: postgres-up redis-up stock-trader-build stock-trader-migrate ## Start al
 dev-up-all: dev-up redis-ui-up ## Start all services + Flower + RedisInsight UIs
 	$(DOCKER_COMPOSE_COMMAND) up -d flower
 
+.PHONY: dev-up-shared
+dev-up-shared: stock-trader-build stock-trader-migrate ## Start API + workers against already-running shared infra
+	$(DOCKER_COMPOSE_COMMAND) up -d stock_trader_api stock_trader_worker stock_trader_fetch_worker
+
 .PHONY: dev-down
 dev-down: ## Stop all services
 	$(DOCKER_COMPOSE_COMMAND) down
